@@ -75,22 +75,22 @@ void keyboard_handler()
 
     switch (state) {
     case 'w':
-        velocity_control(0.0, MAX_LIN_VEL, 0.0);
+        velocity_control(0.0, 10, 0.0);
         break;
     case 's':
-        velocity_control(0.0, -MAX_LIN_VEL, 0.0);
+        velocity_control(0.0, -10, 0.0);
         break;
     case 'a':
-        velocity_control(-MAX_LIN_VEL, 0.0, 0.0);
+        velocity_control(-10, 0.0, 0.0);
         break;
     case 'd':
-        velocity_control(MAX_LIN_VEL, 0.0, 0.0);
+        velocity_control(10, 0.0, 0.0);
         break;
     case 'q':
-        velocity_control(0.0, 0.0, MAX_ANG_VEL);
+        velocity_control(0.0, 0.0, 5);
         break;
     case 'e':
-        velocity_control(0.0, 0.0, -MAX_ANG_VEL);
+        velocity_control(0.0, 0.0, -5);
         break;
     case ' ':
         velocity_control(0.0, 0.0, 0.0);
@@ -143,6 +143,8 @@ void velocity_control(float vx, float vy, float vtheta)
     } else if (vtheta < prev_robot_vel.theta - MAX_ANG_ACC * dt) {
         robot_vel.theta = prev_robot_vel.theta - MAX_ANG_ACC * dt;
     }
+
+    printf("vx: %.2f, vy: %.2f, vtheta: %.2f\n", robot_vel.x, robot_vel.y, robot_vel.theta);
 
     prev_time = ros::Time::now().toSec();
     prev_robot_vel = robot_vel;

@@ -3,4 +3,5 @@
         <remap from="/joy" to="/device/joy"/>
         <remap from="/joy/set_feedback" to="/device/joy/set_feedback"/>
     </node>
+    <node name="arduino" pkg="device" type="arduino" output="log" respawn="true" />
 </launch>

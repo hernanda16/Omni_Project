@@ -35,13 +35,13 @@ typedef struct {
 } pose_t;
 
 // Global variables
-float MAX_LIN_VEL = 0.01; // in m/s
-float MAX_ANG_VEL = 0.25; // in rad/s
-float MAX_LIN_ACC = 0.005; // in m/s^2
-float MAX_ANG_ACC = 0.10; // in rad/s^2
-float Kp = 1.0;
-float Ki = 0.0;
-float Kd = 0.0;
+float MAX_LIN_VEL = 0.5f; // in m/s
+float MAX_ANG_VEL = 0.25f; // in rad/s
+float MAX_LIN_ACC = 0.005f; // in m/s^2
+float MAX_ANG_ACC = 0.10f; // in rad/s^2
+float Kp = 1.0f;
+float Ki = 0.0f;
+float Kd = 0.0f;
 
 pose_t robot_pose = { 0.0, 0.0, 0.0 }; // x, y, theta
 pose_t robot_vel = { 0.0, 0.0, 0.0 }; // vx, vy, omega

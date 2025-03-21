@@ -1,1 +1,2 @@
-roslaunch core core.launch
+. devel/setup.bash
+roslaunch robot robot.launch
