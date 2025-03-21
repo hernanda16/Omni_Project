@@ -1,0 +1,8 @@
+prefix=/home/her/Documents/project/omni_lss/devel
+
+Name: device
+Description: Description of device
+Version: 0.0.0
+Cflags: -I/home/her/Documents/project/omni_lss/src/device/include
+Libs: -L${prefix}/lib 
+Requires: 

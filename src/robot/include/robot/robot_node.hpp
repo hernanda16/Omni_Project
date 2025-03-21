@@ -1,0 +1,91 @@
+#ifndef ROBOT_NODE_HPP
+#define ROBOT_NODE_HPP
+
+#include <geometry_msgs/Twist.h>
+#include <ros/package.h>
+#include <ros/ros.h>
+#include <sensor_msgs/Joy.h>
+
+#include <sys/ioctl.h>
+#include <termios.h>
+
+#define KEYBOARD 0
+#define JOYSTICK 1
+
+#define MANUAL 0
+#define AUTO 1
+#define DEBUG 2
+
+typedef struct {
+    float x;
+    float y;
+} axis_t;
+
+typedef struct {
+    int8_t x;
+    int8_t o;
+    int8_t square;
+    int8_t triangle;
+} button_t;
+
+typedef struct {
+    float x;
+    float y;
+    float theta;
+} pose_t;
+
+// Global variables
+float MAX_LIN_VEL = 0.01; // in m/s
+float MAX_ANG_VEL = 0.25; // in rad/s
+float MAX_LIN_ACC = 0.005; // in m/s^2
+float MAX_ANG_ACC = 0.10; // in rad/s^2
+float Kp = 1.0;
+float Ki = 0.0;
+float Kd = 0.0;
+
+pose_t robot_pose = { 0.0, 0.0, 0.0 }; // x, y, theta
+pose_t robot_vel = { 0.0, 0.0, 0.0 }; // vx, vy, omega
+uint16_t robot_state = 0;
+uint8_t controlled_by = 0; // 0: keyboard, 1: joystick
+double joystick_timer = 0.0;
+
+axis_t axis_left;
+axis_t axis_right;
+button_t buttons;
+
+// ROS objects
+ros::Timer timer_main;
+ros::Subscriber sub_joy;
+ros::Publisher pub_cmd_vel;
+
+// Function prototypes
+void timer_callback(const ros::TimerEvent&);
+void joy_callback(const sensor_msgs::Joy::ConstPtr& msg);
+
+void keyboard_handler();
+void joystick_handler();
+void state_control();
+void velocity_control(float vx, float vy, float vtheta);
+uint8_t position_control(float x, float y, float theta);
+void publish_all();
+
+int8_t kbhit()
+{
+    static const int STDIN = 0;
+    static bool initialized = false;
+
+    if (!initialized) {
+        termios term;
+        tcgetattr(STDIN, &term);
+        term.c_lflag &= ~ICANON;
+        tcsetattr(STDIN, TCSANOW, &term);
+        setbuf(stdin, NULL);
+        initialized = true;
+    }
+
+    int bytesWaiting;
+    ioctl(STDIN, FIONREAD, &bytesWaiting);
+    return bytesWaiting;
+}
+
+#endif

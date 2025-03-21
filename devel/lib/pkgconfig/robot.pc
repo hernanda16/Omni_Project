@@ -1,0 +1,8 @@
+prefix=/home/her/Documents/project/omni_lss/devel
+
+Name: robot
+Description: Description of robot
+Version: 0.0.0
+Cflags: -I/home/her/Documents/project/omni_lss/src/robot/include
+Libs: -L${prefix}/lib 
+Requires: 
