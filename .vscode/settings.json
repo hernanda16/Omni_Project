@@ -5,6 +5,5 @@
     ],
     "python.analysis.extraPaths": [
         "/opt/ros/noetic/lib/python3/dist-packages"
-    ],
-    "cmake.sourceDirectory": "/home/her/Documents/project/omni_lss/src/core"
+    ]
 }

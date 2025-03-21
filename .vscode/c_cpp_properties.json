@@ -7,9 +7,6 @@
       },
       "includePath": [
         "/opt/ros/noetic/include/**",
-        "/home/her/Documents/project/omni_lss/src/comm/include/**",
-        "/home/her/Documents/project/omni_lss/src/core/include/**",
-        "/home/her/Documents/project/omni_lss/src/device/include/**",
         "/usr/include/**"
       ],
       "name": "ROS",
