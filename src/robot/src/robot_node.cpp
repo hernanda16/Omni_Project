@@ -7,10 +7,10 @@ int main(int argc, char** argv)
     ros::MultiThreadedSpinner spinner(0);
 
     // Get parameters from the parameter server
-    nh.param("/robot/max_lin_vel", MAX_LIN_VEL, 1.0f);
-    nh.param("/robot/max_ang_vel", MAX_ANG_VEL, 1.0f);
-    nh.param("/robot/max_lin_acc", MAX_LIN_ACC, 1.0f);
-    nh.param("/robot/max_ang_acc", MAX_ANG_ACC, 1.0f);
+    nh.param("/robot/max_lin_vel", MAX_LIN_VEL, 0.5f);
+    nh.param("/robot/max_ang_vel", MAX_ANG_VEL, 0.25f);
+    nh.param("/robot/max_lin_acc", MAX_LIN_ACC, 0.01f);
+    nh.param("/robot/max_ang_acc", MAX_ANG_ACC, 0.1f);
     nh.param("/robot/kp", Kp, 1.0f);
     nh.param("/robot/ki", Ki, 0.0f);
     nh.param("/robot/kd", Kd, 0.0f);
@@ -75,22 +75,22 @@ void keyboard_handler()
 
     switch (state) {
     case 'w':
-        velocity_control(0.0, 10, 0.0);
+        velocity_control(0.0, MAX_LIN_VEL, 0.0);
         break;
     case 's':
-        velocity_control(0.0, -10, 0.0);
+        velocity_control(0.0, -MAX_LIN_VEL, 0.0);
         break;
     case 'a':
-        velocity_control(-10, 0.0, 0.0);
+        velocity_control(-MAX_LIN_VEL, 0.0, 0.0);
         break;
     case 'd':
-        velocity_control(10, 0.0, 0.0);
+        velocity_control(MAX_LIN_VEL, 0.0, 0.0);
         break;
     case 'q':
-        velocity_control(0.0, 0.0, 5);
+        velocity_control(0.0, 0.0, MAX_ANG_VEL);
         break;
     case 'e':
-        velocity_control(0.0, 0.0, -5);
+        velocity_control(0.0, 0.0, -MAX_LIN_VEL);
         break;
     case ' ':
         velocity_control(0.0, 0.0, 0.0);

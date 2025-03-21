@@ -37,9 +37,9 @@ typedef struct {
 // Global variables
 float MAX_LIN_VEL = 0.5f; // in m/s
 float MAX_ANG_VEL = 0.25f; // in rad/s
-float MAX_LIN_ACC = 0.005f; // in m/s^2
-float MAX_ANG_ACC = 0.10f; // in rad/s^2
-float Kp = 1.0f;
+float MAX_LIN_ACC = 0.01f; // in m/s^2
+float MAX_ANG_ACC = 1.0f; // in rad/s^2
+float Kp = 0.1f;
 float Ki = 0.0f;
 float Kd = 0.0f;
 
