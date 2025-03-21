@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
   std_msgs
+  serial
 )
 
 catkin_package(
@@ -18,3 +19,6 @@ include
 
 add_executable(motor src/motor.cpp)
 target_link_libraries(motor ${catkin_LIBRARIES})
+
+add_executable(arduino src/arduino.cpp)
+target_link_libraries(arduino ${catkin_LIBRARIES})
