@@ -1,8 +1,0 @@
-prefix=/home/her/Documents/project/omni_lss/install
-
-Name: device
-Description: Description of device
-Version: 0.0.0
-Cflags: -I${prefix}/include
-Libs: -L${prefix}/lib 
-Requires: 

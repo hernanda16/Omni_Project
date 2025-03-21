@@ -1,2 +1,0 @@
-comm:device:robot
--DCATKIN_DEVEL_PREFIX=/home/her/Documents/project/omni_lss/devel -DCMAKE_INSTALL_PREFIX=/home/her/Documents/project/omni_lss/install -G Unix Makefiles
