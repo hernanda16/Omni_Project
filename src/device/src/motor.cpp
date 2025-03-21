@@ -7,7 +7,7 @@ int main(int argc, char** argv)
     ros::MultiThreadedSpinner spinner(1);
 
     sub_cmd_vel = nh.subscribe<geometry_msgs::Twist>("/robot/cmd_vel", 1, cmd_vel_callback);
-    pub_pose_robot = nh.advertise<geometry_msgs::Pose>("/device/pose_robot", 1);
+    pub_pose_robot = nh.advertise<geometry_msgs::Pose2D>("/device/pose_robot", 1);
     timer_main = nh.createTimer(ros::Duration(0.1), timer_callback);
 
     spinner.spin();
