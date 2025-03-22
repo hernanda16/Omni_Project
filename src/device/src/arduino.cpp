@@ -22,18 +22,21 @@ float vx = 0.0;
 float vy = 0.0;
 float omega = 0.0;
 
-// Mutex for thread safety (optional, if needed in a multithreaded environment)
-std::mutex velocity_mutex;
-
 // Function to send velocity commands to the Arduino
 void sendVelocityCommand(float vx, float vy, float omega) {
     float buffer[3] = {vx, vy, omega};
     ser.write((uint8_t*)buffer, sizeof(buffer));
 }
 
+// Function to send PID parameters and pid_interval to the Arduino
+void sendPIDParams(float kp, float ki, float kd, unsigned int pid_interval) {
+    float pidParams[4] = {kp, ki, kd, static_cast<float>(pid_interval)};
+    ser.write((uint8_t*)pidParams, sizeof(pidParams));
+    ROS_INFO("Sent PID parameters: Kp=%.2f, Ki=%.2f, Kd=%.2f, pid_interval=%u", kp, ki, kd, pid_interval);
+}
+
 // Callback untuk menerima velocity
 void velocityCallback(const geometry_msgs::Twist::ConstPtr& msg) {
-    // std::lock_guard<std::mutex> lock(velocity_mutex); // Lock mutex
     vx = msg->linear.x;
     vy = msg->linear.y;
     omega = msg->angular.z;
@@ -41,11 +44,6 @@ void velocityCallback(const geometry_msgs::Twist::ConstPtr& msg) {
     printf("vx: %.2f, vy: %.2f, omega: %.2f\n", vx, vy, omega);
     sendVelocityCommand(vx, vy, omega);
 }
-
-// Timer callback untuk mengirim velocity
-// void velocityTimerCallback(const ros::TimerEvent&) {
-//     std::lock_guard<std::mutex> lock(velocity_mutex); // Lock mutex
-// }
 
 // Timer callback to read pulses and publish them
 void pulseTimerCallback(const ros::TimerEvent&) {
@@ -94,8 +92,16 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    // Create a timer to send velocity commands at 50 Hz
-    // ros::Timer velocity_timer = nh.createTimer(ros::Duration(0.02), velocityTimerCallback); // 50 Hz
+    // Get PID parameters and pid_interval from ROS parameter server
+    float kp, ki, kd;
+    int pid_interval;
+    nh.param("motor_kp", kp, 1.5f);
+    nh.param("motor_ki", ki, 0.05f);
+    nh.param("motor_kd", kd, 0.0f);
+    nh.param("pid_interval", pid_interval, 1);
+
+    // Send PID parameters and interval to Arduino
+    sendPIDParams(kp, ki, kd, static_cast<unsigned int>(pid_interval));
 
     // Create a timer to periodically read pulses and publish them
     ros::Timer pulse_timer = nh.createTimer(ros::Duration(0.02), pulseTimerCallback); // 50 Hz
