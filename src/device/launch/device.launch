@@ -4,4 +4,22 @@
         <remap from="/joy/set_feedback" to="/device/joy/set_feedback"/>
     </node>
     <node name="arduino" pkg="device" type="arduino" output="log" respawn="true" />
+    <node ns="imu" name="imu_node" pkg="imu_bno055" type="bno055_i2c_node" respawn="true" respawn_delay="2" output="log">
+        <param name="device" type="string" value="/dev/i2c-1"/>
+        <param name="address" type="int" value="40"/> <!-- 0x28 == 40 is the default for BNO055 -->
+        <param name="frame_id" type="string" value="imu"/>
+        <remap from="/imu/data" to="/device/imu/data"/>
+        <remap from="/imu/mag" to="/device/imu/mag"/>
+        <remap from="/imu/raw" to="/device/imu/raw"/>
+        <remap from="/imu/status" to="/device/imu/status"/>
+        <remap from="/imu/temp" to="/device/imu/temp"/>
+    </node>
+    <node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="log">
+        <param name="serial_port"         type="string" value="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0"/>
+        <param name="serial_baudrate"     type="int"    value="115200"/>
+        <param name="frame_id"            type="string" value="laser"/>
+        <param name="inverted"            type="bool"   value="false"/>
+        <param name="angle_compensate"    type="bool"   value="true"/>
+        <remap from="/scan" to="/device/lidar/scan"/>
+    </node>
 </launch>
