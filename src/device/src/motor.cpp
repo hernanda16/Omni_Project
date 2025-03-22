@@ -1,4 +1,4 @@
-#include "motor.hpp"
+#include "device/motor.hpp"
 
 NexusMotorController::NexusMotorController()
     : wheelSpeed({0, 0, 0, 0}),
@@ -20,7 +20,6 @@ NexusMotorController::NexusMotorController()
     nh.param("pid_min_out", minOutput, -150.0f);
     nh.param("pid_max_out", maxOutput, 150.0f);
 
-    // Tambahkan elemen-elemen PID controllers ke vector
     for (int i = 0; i < 4; i++)
     {
         myPID_wheel.emplace_back(Kp, Ki, Kd, TS, minOutput, maxOutput, AUTOMATIC, DIRECT);
@@ -88,6 +87,9 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "nmc");
     NexusMotorController nmc;
-    ros::spin();
+
+    ros::MultiThreadedSpinner spinner(0);
+    spinner.spin();
+    // ros::spin();
     return 0;
 }
