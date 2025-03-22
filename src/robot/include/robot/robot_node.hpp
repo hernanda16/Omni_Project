@@ -64,7 +64,7 @@ pose_t robot_vel = { 0.0, 0.0, 0.0 }; // vx, vy, omega
 uint16_t robot_state = 0;
 uint8_t controlled_by = 0; // 0: keyboard, 1: joystick
 
-std::vector<point2d_t> lidar_data = { 0 };
+std::vector<point2d_t> lidar_data;
 
 axis_t axis_left;
 axis_t axis_right;

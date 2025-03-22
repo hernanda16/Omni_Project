@@ -77,7 +77,7 @@ int main(int argc, char** argv)
     ros::Subscriber velocity_sub = nh.subscribe("/robot/cmd_vel", 10, velocityCallback);
 
     // Publisher for wheel pulses
-    pulse_pub = nh.advertise<std_msgs::Int32MultiArray>("/device/raw_enc", 10);
+    pulse_pub = nh.advertise<std_msgs::Int32MultiArray>("/device/motor/raw_enc", 10);
 
     // Initialize serial communication
     try {

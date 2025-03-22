@@ -268,6 +268,10 @@ void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg)
     int32_t enc_buffer[4] = { msg->data[0], msg->data[1], msg->data[2], msg->data[3] };
     static int32_t enc_prev_buffer[4] = { enc_buffer[0], enc_buffer[1], enc_buffer[2], enc_buffer[3] };
     static int32_t enc_diff[4] = { 0, 0, 0, 0 };
+    static double prev_time = ros::Time::now().toSec();
+
+    double current_time = ros::Time::now().toSec();
+    double dt = current_time - prev_time;
 
     for (int i = 0; i < 4; i++) {
         enc_diff[i] = enc_buffer[i] - enc_prev_buffer[i];
@@ -280,6 +284,8 @@ void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg)
         dy += enc_diff[i] * sin(angle[i] * M_PI / 180.0);
     }
 
-    robot_pose.x += dx * cos(robot_pose.theta) - dy * sin(robot_pose.theta);
-    robot_pose.y += dx * sin(robot_pose.theta) + dy * cos(robot_pose.theta);
+    robot_pose.x += (dx * cos(robot_pose.theta) - dy * sin(robot_pose.theta)) * dt;
+    robot_pose.y += (dx * sin(robot_pose.theta) + dy * cos(robot_pose.theta)) * dt;
+
+    prev_time = current_time;
 }
