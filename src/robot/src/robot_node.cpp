@@ -14,10 +14,18 @@ int main(int argc, char** argv)
     Kp = nh.param<float>("kp", 1.0f);
     Ki = nh.param<float>("ki", 0.0f);
     Kd = nh.param<float>("kd", 0.0f);
+    tf_lidar2base_x = nh.param<float>("tf_lidar2base_x", 0.0f);
+    tf_lidar2base_y = nh.param<float>("tf_lidar2base_y", 0.0f);
+    tf_lidar2base_theta = nh.param<float>("tf_lidar2base_theta", 0.0f);
+
+    initial_pose.x = nh.param<float>("initial_pose_x", 0.0f);
+    initial_pose.y = nh.param<float>("initial_pose_y", 0.0f);
+    initial_pose.theta = nh.param<float>("initial_pose_theta", 0.0f);
 
     printf("======================================\n");
     printf("        ROBOT NODE PARAMETERS         \n");
     printf("======================================\n");
+    printf("\tInitial Pose\t: (%.2f, %.2f, %.2f)\n", initial_pose.x, initial_pose.y, initial_pose.theta);
     printf("\tMAX_LIN_VEL\t: %.2f\n", MAX_LIN_VEL);
     printf("\tMAX_ANG_VEL\t: %.2f\n", MAX_ANG_VEL);
     printf("\tMAX_LIN_ACC\t: %.2f\n", MAX_LIN_ACC);
@@ -25,14 +33,18 @@ int main(int argc, char** argv)
     printf("\tKp\t\t: %.2f\n", Kp);
     printf("\tKi\t\t: %.2f\n", Ki);
     printf("\tKd\t\t: %.2f\n", Kd);
+    printf("\tLidar to Base\t: (%.2f, %.2f, %.2f)\n", tf_lidar2base_x, tf_lidar2base_y, tf_lidar2base_theta);
     printf("======================================\n");
+
+    set_initial_pose(initial_pose.x, initial_pose.y, initial_pose.theta);
 
     sub_joy = nh.subscribe<sensor_msgs::Joy>("/device/joy", 1, joy_callback);
     sub_imu = nh.subscribe<sensor_msgs::Imu>("/device/imu/data", 1, imu_callback);
     sub_lidar = nh.subscribe<sensor_msgs::LaserScan>("/device/lidar/scan", 1, lidar_callback);
-    // sub_encoder = nh.subscribe<std_msgs::Int32MultiArray>("/device/motor/raw_enc", 1, encoder_callback);
+    sub_encoder = nh.subscribe<std_msgs::Int32MultiArray>("/device/motor/raw_enc", 1, encoder_callback);
     pub_cmd_vel = nh.advertise<geometry_msgs::Twist>("/robot/cmd_vel", 1);
-    timer_main = nh.createTimer(ros::Duration(0.1), timer_callback);
+    pub_robot_pose = nh.advertise<geometry_msgs::Pose2D>("/robot/pose", 1);
+    timer_main = nh.createTimer(ros::Duration(0.02), timer_callback);
 
     spinner.spin();
     return 0;
@@ -110,17 +122,10 @@ void joystick_handler()
 
 void state_control()
 {
-    // if (ros::Time::now().toSec() - joystick_timer > 1) {
-    //     controlled_by = KEYBOARD;
-    // } else {
-    //     controlled_by = JOYSTICK;
-    // }
-
-    // if (controlled_by == KEYBOARD) {
-    keyboard_handler();
-    // } else if (controlled_by == JOYSTICK) {
-    joystick_handler();
-    // }
+    if (controlled_by == KEYBOARD)
+        keyboard_handler();
+    else if (controlled_by == JOYSTICK)
+        joystick_handler();
 }
 
 void velocity_control(float vx, float vy, float vtheta)
@@ -146,8 +151,6 @@ void velocity_control(float vx, float vy, float vtheta)
     } else if (vtheta < prev_robot_vel.theta - MAX_ANG_ACC * dt) {
         robot_vel.theta = prev_robot_vel.theta - MAX_ANG_ACC * dt;
     }
-
-    printf("vx: %.2f, vy: %.2f, vtheta: %.2f\n", robot_vel.x, robot_vel.y, robot_vel.theta);
 
     prev_time = ros::Time::now().toSec();
     prev_robot_vel = robot_vel;
@@ -200,37 +203,83 @@ void publish_all()
     cmd_vel.linear.y = robot_vel.y;
     cmd_vel.angular.z = robot_vel.theta;
     pub_cmd_vel.publish(cmd_vel);
+
+    geometry_msgs::Pose2D pose_msg;
+    pose_msg.x = robot_pose.x;
+    pose_msg.y = robot_pose.y;
+    pose_msg.theta = robot_pose.theta;
+    pub_robot_pose.publish(pose_msg);
 }
 
 void joy_callback(const sensor_msgs::Joy::ConstPtr& msg)
 {
     axis_left.x = -msg->axes[0];
     axis_left.y = msg->axes[1];
-    axis_right.x = -msg->axes[2];
-    axis_right.y = msg->axes[3];
+    axis_right.x = msg->axes[2];
+    axis_right.y = -msg->axes[3];
 
     buttons.x = msg->buttons[0];
     buttons.o = msg->buttons[1];
     buttons.square = msg->buttons[2];
     buttons.triangle = msg->buttons[3];
 
+    controlled_by = JOYSTICK;
+
     // printf("left: (x: %.2f, y: %.2f), right: (x: %.2f, y: %.2f)\n", axis_left.x, axis_left.y, axis_right.x, axis_right.y);
     // printf("buttons: (x: %d, o: %d, sq: %d, tr: %d)\n", buttons.x, buttons.o, buttons.square, buttons.triangle);
-
-    // joystick_timer = ros::Time::now().toSec();
 }
 
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 {
-    robot_pose.theta = tf::getYaw(msg->orientation);
+    float buffer_theta = tf::getYaw(msg->orientation) * 180.0 / M_PI;
+    static float prev_buffer_theta = buffer_theta;
+    robot_pose.theta += buffer_theta - prev_buffer_theta;
+    prev_buffer_theta = buffer_theta;
 }
 
 void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
-    // Do something with the lidar data
+    point2d_t temp;
+    lidar_data.clear();
+
+    for (int i = 0; i < msg->ranges.size(); i++) {
+        if (msg->ranges[i] < msg->range_max) {
+            temp.x = msg->ranges[i] * cos(msg->angle_min + i * msg->angle_increment);
+            temp.y = msg->ranges[i] * sin(msg->angle_min + i * msg->angle_increment);
+            lidar_data.push_back(temp);
+        }
+    }
+
+    for (int i = 0; i < lidar_data.size(); i++) {
+        float x = lidar_data[i].x;
+        float y = lidar_data[i].y;
+        // Apply the transformation from lidar to base
+        float x_base = x * cos(tf_lidar2base_theta) - y * sin(tf_lidar2base_theta) + tf_lidar2base_x;
+        float y_base = x * sin(tf_lidar2base_theta) + y * cos(tf_lidar2base_theta) + tf_lidar2base_y;
+        // Apply the transformation from base to world
+        lidar_data[i].x = x_base * cos(robot_pose.theta) - y_base * sin(robot_pose.theta) + robot_pose.x;
+        lidar_data[i].y = x_base * sin(robot_pose.theta) + y_base * cos(robot_pose.theta) + robot_pose.y;
+    }
 }
 
-// void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg)
-// {
-//     // Do something with the encoder data
-// }
+void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg)
+{
+    static const float angle[4] = { 45, 135, 225, 315 };
+    int32_t enc_buffer[4] = { msg->data[0], msg->data[1], msg->data[2], msg->data[3] };
+    static int32_t enc_prev_buffer[4] = { enc_buffer[0], enc_buffer[1], enc_buffer[2], enc_buffer[3] };
+    static int32_t enc_diff[4] = { 0, 0, 0, 0 };
+
+    for (int i = 0; i < 4; i++) {
+        enc_diff[i] = enc_buffer[i] - enc_prev_buffer[i];
+        enc_prev_buffer[i] = enc_buffer[i];
+    }
+
+    float dx = 0.0, dy = 0.0, dtheta = 0.0;
+    for (int i = 0; i < 4; i++) {
+        dx += enc_diff[i] * cos(angle[i] * M_PI / 180.0);
+        dy += enc_diff[i] * sin(angle[i] * M_PI / 180.0);
+    }
+
+    robot_pose.x += dx * cos(robot_pose.theta) - dy * sin(robot_pose.theta);
+    robot_pose.y += dx * sin(robot_pose.theta) + dy * cos(robot_pose.theta);
+}

@@ -1,4 +1,7 @@
 <launch>
+    <param name="initial_pose_x" value="0.0" />
+    <param name="initial_pose_y" value="0.0" />
+    <param name="initial_pose_theta" value="90.0" />
     <param name="max_lin_vel" value="0.5" />
     <param name="max_ang_vel" value="0.25" />
     <param name="max_lin_acc" value="1.0" />
@@ -6,6 +9,9 @@
     <param name="kp" value="1.0" />
     <param name="ki" value="0.0" />
     <param name="kd" value="0.0" />
+    <param name="tf_lidar2base_x" value="0.0" />
+    <param name="tf_lidar2base_y" value="0.0" />
+    <param name="tf_lidar2base_theta" value="0.0" />
     <node name="robot_node" pkg="robot" type="robot_node" output="screen" respawn="true" />
     <include file="$(find device)/launch/device.launch" />
 </launch>

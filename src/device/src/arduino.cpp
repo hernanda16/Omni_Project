@@ -1,8 +1,8 @@
-#include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
-#include <std_msgs/Int32MultiArray.h>
+#include <ros/ros.h>
 #include <serial/serial.h>
 #include <sstream>
+#include <std_msgs/Int32MultiArray.h>
 
 serial::Serial ser;
 
@@ -23,20 +23,23 @@ float vy = 0.0;
 float omega = 0.0;
 
 // Function to send velocity commands to the Arduino
-void sendVelocityCommand(float vx, float vy, float omega) {
-    float buffer[3] = {vx, vy, omega};
+void sendVelocityCommand(float vx, float vy, float omega)
+{
+    float buffer[3] = { vx, vy, omega };
     ser.write((uint8_t*)buffer, sizeof(buffer));
 }
 
 // Function to send PID parameters and pid_interval to the Arduino
-void sendPIDParams(float kp, float ki, float kd, unsigned int pid_interval) {
-    float pidParams[4] = {kp, ki, kd, static_cast<float>(pid_interval)};
+void sendPIDParams(float kp, float ki, float kd, unsigned int pid_interval)
+{
+    float pidParams[4] = { kp, ki, kd, static_cast<float>(pid_interval) };
     ser.write((uint8_t*)pidParams, sizeof(pidParams));
     ROS_INFO("Sent PID parameters: Kp=%.2f, Ki=%.2f, Kd=%.2f, pid_interval=%u", kp, ki, kd, pid_interval);
 }
 
 // Callback untuk menerima velocity
-void velocityCallback(const geometry_msgs::Twist::ConstPtr& msg) {
+void velocityCallback(const geometry_msgs::Twist::ConstPtr& msg)
+{
     vx = msg->linear.x;
     vy = msg->linear.y;
     omega = msg->angular.z;
@@ -46,7 +49,8 @@ void velocityCallback(const geometry_msgs::Twist::ConstPtr& msg) {
 }
 
 // Timer callback to read pulses and publish them
-void pulseTimerCallback(const ros::TimerEvent&) {
+void pulseTimerCallback(const ros::TimerEvent&)
+{
     if (ser.available() >= sizeof(WheelData)) {
         try {
             // Read wheel data from Arduino
@@ -55,8 +59,8 @@ void pulseTimerCallback(const ros::TimerEvent&) {
 
             // Publish the pulses as a ROS message
             std_msgs::Int32MultiArray pulse_msg;
-            pulse_msg.data = {wheelData.wheelULPulse, wheelData.wheelLLPulse,
-                              wheelData.wheelLRPulse, wheelData.wheelURPulse};
+            pulse_msg.data = { wheelData.wheelULPulse, wheelData.wheelLLPulse,
+                wheelData.wheelLRPulse, wheelData.wheelURPulse };
             pulse_pub.publish(pulse_msg);
         } catch (const std::exception& e) {
             ROS_ERROR_STREAM("Error reading from serial: " << e.what());
@@ -64,7 +68,8 @@ void pulseTimerCallback(const ros::TimerEvent&) {
     }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     ros::init(argc, argv, "serial_comm_node");
     ros::NodeHandle nh;
 
@@ -99,6 +104,15 @@ int main(int argc, char** argv) {
     nh.param("motor_ki", ki, 0.05f);
     nh.param("motor_kd", kd, 0.0f);
     nh.param("pid_interval", pid_interval, 1);
+
+    printf("======================================\n");
+    printf("       ARDUINO NODE PARAMETERS        \n");
+    printf("======================================\n");
+    printf("\tKp Motor\t: %.2f\n", kp);
+    printf("\tKi Motor\t: %.2f\n", ki);
+    printf("\tKd Motor\t: %.2f\n", kd);
+    printf("\tPID Interval\t: %d\n", pid_interval);
+    printf("======================================\n");
 
     // Send PID parameters and interval to Arduino
     sendPIDParams(kp, ki, kd, static_cast<unsigned int>(pid_interval));
