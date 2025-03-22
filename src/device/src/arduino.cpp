@@ -31,21 +31,21 @@ void sendVelocityCommand(float vx, float vy, float omega) {
     ser.write((uint8_t*)buffer, sizeof(buffer));
 }
 
-// Callback for the velocity topic
+// Callback untuk menerima velocity
 void velocityCallback(const geometry_msgs::Twist::ConstPtr& msg) {
-    // Store the received velocity commands in global variables
+    // std::lock_guard<std::mutex> lock(velocity_mutex); // Lock mutex
     vx = msg->linear.x;
     vy = msg->linear.y;
     omega = msg->angular.z;
 
     printf("vx: %.2f, vy: %.2f, omega: %.2f\n", vx, vy, omega);
-}
-
-// Timer callback to send velocity commands at 50 Hz
-void velocityTimerCallback(const ros::TimerEvent&) {
-    // Send the stored velocity commands to the Arduino
     sendVelocityCommand(vx, vy, omega);
 }
+
+// Timer callback untuk mengirim velocity
+// void velocityTimerCallback(const ros::TimerEvent&) {
+//     std::lock_guard<std::mutex> lock(velocity_mutex); // Lock mutex
+// }
 
 // Timer callback to read pulses and publish them
 void pulseTimerCallback(const ros::TimerEvent&) {
@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
     }
 
     // Create a timer to send velocity commands at 50 Hz
-    ros::Timer velocity_timer = nh.createTimer(ros::Duration(0.02), velocityTimerCallback); // 50 Hz
+    // ros::Timer velocity_timer = nh.createTimer(ros::Duration(0.02), velocityTimerCallback); // 50 Hz
 
     // Create a timer to periodically read pulses and publish them
     ros::Timer pulse_timer = nh.createTimer(ros::Duration(0.02), pulseTimerCallback); // 50 Hz
