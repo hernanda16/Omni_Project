@@ -103,7 +103,7 @@ int main(int argc, char** argv)
     nh.param("motor_kp", kp, 1.5f);
     nh.param("motor_ki", ki, 0.05f);
     nh.param("motor_kd", kd, 0.0f);
-    nh.param("pid_interval", pid_interval, 1);
+    nh.param("pid_interval", pid_interval, 20);
 
     printf("======================================\n");
     printf("       ARDUINO NODE PARAMETERS        \n");
