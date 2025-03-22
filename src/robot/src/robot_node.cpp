@@ -7,13 +7,13 @@ int main(int argc, char** argv)
     ros::MultiThreadedSpinner spinner(0);
 
     // Get parameters from the parameter server
-    nh.param("/robot/max_lin_vel", MAX_LIN_VEL, 0.5f);
-    nh.param("/robot/max_ang_vel", MAX_ANG_VEL, 0.2f);
-    nh.param("/robot/max_lin_acc", MAX_LIN_ACC, 0.2f);
-    nh.param("/robot/max_ang_acc", MAX_ANG_ACC, 0.1f);
-    nh.param("/robot/kp", Kp, 1.0f);
-    nh.param("/robot/ki", Ki, 0.0f);
-    nh.param("/robot/kd", Kd, 0.0f);
+    MAX_LIN_VEL = nh.param<float>("max_lin_vel", 0.5f);
+    MAX_ANG_VEL = nh.param<float>("max_ang_vel", 0.2f);
+    MAX_LIN_ACC = nh.param<float>("max_lin_acc", 0.2f);
+    MAX_ANG_ACC = nh.param<float>("max_ang_acc", 0.1f);
+    Kp = nh.param<float>("kp", 1.0f);
+    Ki = nh.param<float>("ki", 0.0f);
+    Kd = nh.param<float>("kd", 0.0f);
 
     printf("======================================\n");
     printf("        ROBOT NODE PARAMETERS         \n");
@@ -28,6 +28,9 @@ int main(int argc, char** argv)
     printf("======================================\n");
 
     sub_joy = nh.subscribe<sensor_msgs::Joy>("/device/joy", 1, joy_callback);
+    sub_imu = nh.subscribe<sensor_msgs::Imu>("/device/imu/data", 1, imu_callback);
+    sub_lidar = nh.subscribe<sensor_msgs::LaserScan>("/device/lidar/scan", 1, lidar_callback);
+    // sub_encoder = nh.subscribe<std_msgs::Int32MultiArray>("/device/motor/raw_enc", 1, encoder_callback);
     pub_cmd_vel = nh.advertise<geometry_msgs::Twist>("/robot/cmd_vel", 1);
     timer_main = nh.createTimer(ros::Duration(0.1), timer_callback);
 
@@ -107,17 +110,17 @@ void joystick_handler()
 
 void state_control()
 {
-    if (ros::Time::now().toSec() - joystick_timer > 1) {
-        controlled_by = KEYBOARD;
-    } else {
-        controlled_by = JOYSTICK;
-    }
+    // if (ros::Time::now().toSec() - joystick_timer > 1) {
+    //     controlled_by = KEYBOARD;
+    // } else {
+    //     controlled_by = JOYSTICK;
+    // }
 
-    if (controlled_by == KEYBOARD) {
-        keyboard_handler();
-    } else if (controlled_by == JOYSTICK) {
-        joystick_handler();
-    }
+    // if (controlled_by == KEYBOARD) {
+    keyboard_handler();
+    // } else if (controlled_by == JOYSTICK) {
+    joystick_handler();
+    // }
 }
 
 void velocity_control(float vx, float vy, float vtheta)
@@ -214,5 +217,20 @@ void joy_callback(const sensor_msgs::Joy::ConstPtr& msg)
     // printf("left: (x: %.2f, y: %.2f), right: (x: %.2f, y: %.2f)\n", axis_left.x, axis_left.y, axis_right.x, axis_right.y);
     // printf("buttons: (x: %d, o: %d, sq: %d, tr: %d)\n", buttons.x, buttons.o, buttons.square, buttons.triangle);
 
-    joystick_timer = ros::Time::now().toSec();
+    // joystick_timer = ros::Time::now().toSec();
 }
+
+void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
+{
+    robot_pose.theta = tf::getYaw(msg->orientation);
+}
+
+void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
+{
+    // Do something with the lidar data
+}
+
+// void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg)
+// {
+//     // Do something with the encoder data
+// }

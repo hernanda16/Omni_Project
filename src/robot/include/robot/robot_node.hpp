@@ -4,10 +4,14 @@
 #include <geometry_msgs/Twist.h>
 #include <ros/package.h>
 #include <ros/ros.h>
+#include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Joy.h>
+#include <sensor_msgs/LaserScan.h>
+// #include <std_msgs/Int32MultiArray.h>
 
 #include <sys/ioctl.h>
 #include <termios.h>
+#include <tf/tf.h>
 
 #define KEYBOARD 0
 #define JOYSTICK 1
@@ -56,11 +60,17 @@ button_t buttons;
 // ROS objects
 ros::Timer timer_main;
 ros::Subscriber sub_joy;
+ros::Subscriber sub_imu;
+ros::Subscriber sub_lidar;
+ros::Subscriber sub_encoder;
 ros::Publisher pub_cmd_vel;
 
 // Function prototypes
 void timer_callback(const ros::TimerEvent&);
 void joy_callback(const sensor_msgs::Joy::ConstPtr& msg);
+void imu_callback(const sensor_msgs::Imu::ConstPtr& msg);
+void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& msg);
+// void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg);
 
 void keyboard_handler();
 void joystick_handler();
