@@ -3,11 +3,14 @@
         <remap from="/joy" to="/device/joy"/>
         <remap from="/joy/set_feedback" to="/device/joy/set_feedback"/>
     </node>
-    <node name="arduino" pkg="device" type="arduino" output="log" respawn="true">
-        <param name="motor_kp" value="1.5" />
-        <param name="motor_ki" value="0.05" />
+    <node name="motor" pkg="device" type="arduino" output="log" respawn="true">
+        <param name="R" value="0.05" />
+        <param name="D" value="0.175" />
+        <param name="motor_kp" value="1.0" />
+        <param name="motor_ki" value="0.0" />
         <param name="motor_kd" value="0.0" />
-        <param name="pid_interval" value="1" />
+        <param name="pid_min_out" value="-150.0" />
+        <param name="pid_max_out" value="150.0" />
     </node>
     <node ns="imu" name="imu_node" pkg="imu_bno055" type="bno055_i2c_node" respawn="true" respawn_delay="2" output="log">
         <param name="device" type="string" value="/dev/i2c-1"/>

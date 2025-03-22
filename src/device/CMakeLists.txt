@@ -2,23 +2,27 @@ cmake_minimum_required(VERSION 3.0.2)
 project(device)
 
 find_package(catkin REQUIRED COMPONENTS
-  geometry_msgs
   roscpp
+  rospy
   std_msgs
-  serial
+  geometry_msgs
+  sensor_msgs
+  rosserial_arduino
 )
 
 catkin_package(
- INCLUDE_DIRS include
+  INCLUDE_DIRS include
+  CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs sensor_msgs rosserial_arduino
 )
 
 include_directories(
-include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(motor src/motor.cpp)
-target_link_libraries(motor ${catkin_LIBRARIES})
+add_executable(motor src/motor.cpp src/pid_controller.cpp)
+add_dependencies(motor ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(arduino src/arduino.cpp)
-target_link_libraries(arduino ${catkin_LIBRARIES})
+target_link_libraries(motor
+  ${catkin_LIBRARIES}
+)
