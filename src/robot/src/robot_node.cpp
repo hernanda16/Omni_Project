@@ -87,10 +87,10 @@ void keyboard_handler()
         velocity_control(MAX_LIN_VEL, 0.0, 0.0);
         break;
     case 'q':
-        velocity_control(0.0, 0.0, 5);
+        velocity_control(0.0, 0.0, MAX_ANG_VEL);
         break;
     case 'e':
-        velocity_control(0.0, 0.0, -5);
+        velocity_control(0.0, 0.0, -MAX_LIN_VEL);
         break;
     case ' ':
         velocity_control(0.0, 0.0, 0.0);

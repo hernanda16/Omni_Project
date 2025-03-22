@@ -1,50 +1,64 @@
-#include <geometry_msgs/Twist.h>
 #include <ros/ros.h>
+#include <geometry_msgs/Twist.h>
+#include <std_msgs/Int32MultiArray.h>
 #include <serial/serial.h>
 #include <sstream>
-#include <std_msgs/Int32MultiArray.h>
-#include <std_msgs/String.h>
 
 serial::Serial ser;
 
 // Publisher for wheel pulses
 ros::Publisher pulse_pub;
 
+// Structure for wheel data
+struct WheelData {
+    int wheelULPulse;
+    int wheelLLPulse;
+    int wheelLRPulse;
+    int wheelURPulse;
+};
+
+// Global variables to store velocity commands
+float vx = 0.0;
+float vy = 0.0;
+float omega = 0.0;
+
+// Mutex for thread safety (optional, if needed in a multithreaded environment)
+std::mutex velocity_mutex;
+
 // Function to send velocity commands to the Arduino
-void sendVelocityCommand(float vx, float vy, float omega)
-{
-    std::ostringstream command;
-    command << vx << " " << vy << " " << omega << "\n";
-    ser.write(command.str());
+void sendVelocityCommand(float vx, float vy, float omega) {
+    float buffer[3] = {vx, vy, omega};
+    ser.write((uint8_t*)buffer, sizeof(buffer));
 }
 
 // Callback for the velocity topic
-void velocityCallback(const geometry_msgs::Twist::ConstPtr& msg)
-{
-    float vx = msg->linear.x;
-    float vy = msg->linear.y;
-    float omega = msg->angular.z;
+void velocityCallback(const geometry_msgs::Twist::ConstPtr& msg) {
+    // Store the received velocity commands in global variables
+    vx = msg->linear.x;
+    vy = msg->linear.y;
+    omega = msg->angular.z;
 
+    printf("vx: %.2f, vy: %.2f, omega: %.2f\n", vx, vy, omega);
+}
+
+// Timer callback to send velocity commands at 50 Hz
+void velocityTimerCallback(const ros::TimerEvent&) {
+    // Send the stored velocity commands to the Arduino
     sendVelocityCommand(vx, vy, omega);
 }
 
 // Timer callback to read pulses and publish them
-void timerCallback(const ros::TimerEvent&)
-{
-    if (ser.available()) {
+void pulseTimerCallback(const ros::TimerEvent&) {
+    if (ser.available() >= sizeof(WheelData)) {
         try {
-            // Read the response from Arduino
-            std::string response = ser.readline();
-            ROS_INFO_STREAM("Arduino Response: " << response);
-
-            // Parse the response into individual wheel pulses
-            std::istringstream iss(response);
-            int wheel1, wheel2, wheel3, wheel4;
-            iss >> wheel1 >> wheel2 >> wheel3 >> wheel4;
+            // Read wheel data from Arduino
+            WheelData wheelData;
+            ser.read((uint8_t*)&wheelData, sizeof(wheelData));
 
             // Publish the pulses as a ROS message
             std_msgs::Int32MultiArray pulse_msg;
-            pulse_msg.data = { wheel1, wheel2, wheel3, wheel4 };
+            pulse_msg.data = {wheelData.wheelULPulse, wheelData.wheelLLPulse,
+                              wheelData.wheelLRPulse, wheelData.wheelURPulse};
             pulse_pub.publish(pulse_msg);
         } catch (const std::exception& e) {
             ROS_ERROR_STREAM("Error reading from serial: " << e.what());
@@ -52,8 +66,7 @@ void timerCallback(const ros::TimerEvent&)
     }
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     ros::init(argc, argv, "serial_comm_node");
     ros::NodeHandle nh;
 
@@ -61,7 +74,7 @@ int main(int argc, char** argv)
     ros::Subscriber velocity_sub = nh.subscribe("/robot/cmd_vel", 10, velocityCallback);
 
     // Publisher for wheel pulses
-    pulse_pub = nh.advertise<std_msgs::Int32MultiArray>("/device/wheel_pulses", 10);
+    pulse_pub = nh.advertise<std_msgs::Int32MultiArray>("/device/raw_enc", 10);
 
     // Initialize serial communication
     try {
@@ -81,8 +94,11 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    // Create a timer to send velocity commands at 50 Hz
+    ros::Timer velocity_timer = nh.createTimer(ros::Duration(0.02), velocityTimerCallback); // 50 Hz
+
     // Create a timer to periodically read pulses and publish them
-    ros::Timer timer = nh.createTimer(ros::Duration(0.02), timerCallback); // 50 Hz
+    ros::Timer pulse_timer = nh.createTimer(ros::Duration(0.02), pulseTimerCallback); // 50 Hz
 
     // Spin to process callbacks
     ros::spin();
