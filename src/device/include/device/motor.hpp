@@ -1,30 +1,58 @@
 #ifndef MOTOR_HPP
 #define MOTOR_HPP
 
-#include <geometry_msgs/Pose2D.h>
-#include <geometry_msgs/Twist.h>
 #include <ros/ros.h>
+#include <geometry_msgs/Twist.h>
+#include <array>
+#include <vector>
+#include "std_msgs/Int16MultiArray.h"
+#include "pid_controller.h"
 
-typedef struct {
-    float x;
-    float y;
-    float theta;
-} pose_t;
+#define LOOP_RATE 20
+#define QUEUE_SIZE 1 // Subscriber buffer size
+#define DEG2RAD (M_PI / 180.0) // Degrees to radians conversion factor
+#define ENC_CPR 12.0 // Encoder counts/rev.
+#define GEAR_REDUC 64.0 // Gears reduction ratio
+#define TS (1.0 / 20.0) // Loop period in seconds
+#define CPP2RADPS (2.0 * M_PI / (TS * ENC_CPR * GEAR_REDUC)) // Counts per loop period to rad/s conversion factor
+#define DEADBAND 10 // Stops actuating motors when: -DEADBAND < actuation < DEADBAND
 
-// Global variables
-pose_t robot_pose = { 0.0, 0.0, 0.0 }; // x, y, theta
-pose_t robot_vel = { 0.0, 0.0, 0.0 }; // vx, vy, omega
+class NexusMotorController
+{
+public:
+    NexusMotorController();
 
-// ROS objects
-ros::Timer timer_main;
-ros::Subscriber sub_cmd_vel;
-ros::Publisher pub_pose_robot;
+private:
+    void velocityCallback(const geometry_msgs::Twist::ConstPtr& twist_aux);
+    void encoderCallback(const std_msgs::Int16MultiArray::ConstPtr& enc_aux);
 
-// Function prototypes
-void timer_callback(const ros::TimerEvent&);
-void cmd_vel_callback(const geometry_msgs::Twist::ConstPtr&);
-void inverse_kinematics(float vx, float vy, float vtheta);
-void pose_estimation();
-void publish_pose();
+    ros::NodeHandle nh;
+    ros::Publisher cmd_motor_pub;
+    ros::Subscriber cmd_vel_sub;
+    ros::Subscriber enc_sub;
 
-#endif
+    ros::Time last_time;
+
+    float Kp, Ki, Kd, minOutput, maxOutput;
+
+    std::array<double, 4> wheelSpeed;
+    std::array<double, 4> wheelDeg;
+    std::array<double, 4> wheelSin;
+    std::array<double, 4> wheelCos;
+
+    std::array<double, 4> vel_fb;
+    std::array<double, 4> prev_vel_fb;
+
+    double lin_Vx;
+    double lin_Vy;
+    double ang_Vz;
+
+    double dt;
+
+    std::vector<PIDControl> myPID_wheel;
+
+    double WHEEL_RADIUS;
+    double DISTANCE_W2MID;
+};
+
+#endif // MOTOR_HPP
