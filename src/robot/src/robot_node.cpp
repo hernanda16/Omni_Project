@@ -25,15 +25,15 @@ int main(int argc, char** argv)
     printf("======================================\n");
     printf("        ROBOT NODE PARAMETERS         \n");
     printf("======================================\n");
-    printf("\tInitial Pose\t: (%.2f, %.2f, %.2f)\n", initial_pose.x, initial_pose.y, initial_pose.theta);
-    printf("\tMAX_LIN_VEL\t: %.2f\n", MAX_LIN_VEL);
-    printf("\tMAX_ANG_VEL\t: %.2f\n", MAX_ANG_VEL);
-    printf("\tMAX_LIN_ACC\t: %.2f\n", MAX_LIN_ACC);
-    printf("\tMAX_ANG_ACC\t: %.2f\n", MAX_ANG_ACC);
-    printf("\tKp\t\t: %.2f\n", Kp);
-    printf("\tKi\t\t: %.2f\n", Ki);
-    printf("\tKd\t\t: %.2f\n", Kd);
-    printf("\tLidar to Base\t: (%.2f, %.2f, %.2f)\n", tf_lidar2base_x, tf_lidar2base_y, tf_lidar2base_theta);
+    printf("Initial Pose\t: (%.2f, %.2f, %.2f)\n", initial_pose.x, initial_pose.y, initial_pose.theta);
+    printf("MAX_LIN_VEL\t: %.2f\n", MAX_LIN_VEL);
+    printf("MAX_ANG_VEL\t: %.2f\n", MAX_ANG_VEL);
+    printf("MAX_LIN_ACC\t: %.2f\n", MAX_LIN_ACC);
+    printf("MAX_ANG_ACC\t: %.2f\n", MAX_ANG_ACC);
+    printf("Kp\t\t: %.2f\n", Kp);
+    printf("Ki\t\t: %.2f\n", Ki);
+    printf("Kd\t\t: %.2f\n", Kd);
+    printf("Lidar to Base\t: (%.2f, %.2f, %.2f)\n", tf_lidar2base_x, tf_lidar2base_y, tf_lidar2base_theta);
     printf("======================================\n");
 
     set_initial_pose(initial_pose.x, initial_pose.y, initial_pose.theta);

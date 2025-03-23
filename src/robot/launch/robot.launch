@@ -13,5 +13,5 @@
     <param name="tf_lidar2base_y" value="0.0" />
     <param name="tf_lidar2base_theta" value="0.0" />
     <node name="robot_node" pkg="robot" type="robot_node" output="screen" respawn="true" />
-    <include file="$(find device)/launch/device.launch" />
+    <!-- <include file="$(find device)/launch/device.launch" /> -->
 </launch>
