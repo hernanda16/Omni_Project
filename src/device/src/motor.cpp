@@ -2,14 +2,14 @@
 
 NexusMotorController::NexusMotorController()
     : wheelSpeed({0, 0, 0, 0}),
-      wheelDeg({45, 135, 225, 315}),
+      wheelDeg({315, 45, 135, 225}),
       wheelSin({sin(wheelDeg[0] * DEG2RAD), sin(wheelDeg[1] * DEG2RAD), sin(wheelDeg[2] * DEG2RAD), sin(wheelDeg[3] * DEG2RAD)}),
       wheelCos({cos(wheelDeg[0] * DEG2RAD), cos(wheelDeg[1] * DEG2RAD), cos(wheelDeg[2] * DEG2RAD), cos(wheelDeg[3] * DEG2RAD)}),
       vel_fb({0, 0, 0, 0}),
       prev_vel_fb({0, 0, 0, 0}),
-      lin_Vx(0),
-      lin_Vy(0),
-      ang_Vz(0),
+      lin_x(0),
+      lin_y(0),
+      ang_z(0),
       dt(0)
 {
     nh.param("R", WHEEL_RADIUS, 0.05);
@@ -34,14 +34,16 @@ NexusMotorController::NexusMotorController()
 
 void NexusMotorController::velocityCallback(const geometry_msgs::Twist::ConstPtr& twist_aux)
 {
-    lin_Vx = twist_aux->linear.x;
-    lin_Vy = twist_aux->linear.y;
-    ang_Vz = twist_aux->angular.z;
+    lin_x = -twist_aux->linear.x;
+    lin_y = -twist_aux->linear.y;
+    ang_z = -twist_aux->angular.z;
 
-    wheelSpeed[0] = 1 / WHEEL_RADIUS * (-wheelSin[0] * lin_Vx + wheelCos[0] * lin_Vy + DISTANCE_W2MID * ang_Vz);
-    wheelSpeed[1] = 1 / WHEEL_RADIUS * (-wheelSin[1] * lin_Vx - wheelCos[1] * lin_Vy + DISTANCE_W2MID * ang_Vz);
-    wheelSpeed[2] = 1 / WHEEL_RADIUS * (wheelSin[2] * lin_Vx - wheelCos[2] * lin_Vy + DISTANCE_W2MID * ang_Vz);
-    wheelSpeed[3] = 1 / WHEEL_RADIUS * (wheelSin[3] * lin_Vx + wheelCos[3] * lin_Vy + DISTANCE_W2MID * ang_Vz);
+// [ INFO] [1742819912.256170617]: lin_x: 0.000000, lin_y: 0.000000, ang_z: 0.000000, WHEEL_RADIUS: 0.050000, DISTANCE_W2MID: 0.175000, wheelSin: [0.707107, 0.707107, -0.707107, -0.707107], wheelCos: [0.707107, -0.707107, -0.707107, 0.707107]
+
+    wheelSpeed[0] = 1 / WHEEL_RADIUS * (lin_x * wheelCos[0] + lin_y * wheelSin[0] + DISTANCE_W2MID * ang_z);
+    wheelSpeed[1] = 1 / WHEEL_RADIUS * (lin_x * wheelCos[1] + lin_y * wheelSin[1] + DISTANCE_W2MID * ang_z);
+    wheelSpeed[2] = 1 / WHEEL_RADIUS * (lin_x * wheelCos[2] + lin_y * wheelSin[2] + DISTANCE_W2MID * ang_z);
+    wheelSpeed[3] = 1 / WHEEL_RADIUS * (lin_x * wheelCos[3] + lin_y * wheelSin[3] + DISTANCE_W2MID * ang_z);
 
     ROS_INFO("Wheel speeds: [%f, %f, %f, %f]", wheelSpeed[0], wheelSpeed[1], wheelSpeed[2], wheelSpeed[3]);
 }
