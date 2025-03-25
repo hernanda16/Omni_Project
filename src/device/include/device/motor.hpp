@@ -43,9 +43,9 @@ private:
     std::array<double, 4> vel_fb;
     std::array<double, 4> prev_vel_fb;
 
-    double lin_Vx;
-    double lin_Vy;
-    double ang_Vz;
+    double lin_x;
+    double lin_y;
+    double ang_z;
 
     double dt;
 

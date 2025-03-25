@@ -3,6 +3,7 @@
 #include <digitalWriteFast.h>
 
 #include <std_msgs/Int16MultiArray.h>
+#include <std_srvs/SetBool.h>
 
 #define MSG_PUB_RATE 20 // publishing rate in Hz.
 #define PWD_TIMEOUT 3 // motor power time-out in s.
@@ -178,6 +179,9 @@ void setup() {
   // modify PWM frequency of motors
   TCCR1B = (TCCR1B & 0xF8) | 0x01;    // Pin9,Pin10 PWM 31250Hz
   TCCR2B = (TCCR2B & 0xF8) | 0x01;    // Pin3,Pin11 PWM 31250Hz
+
+  enc_msg.data_length = 4;
+  enc_msg.data = (int16_t *)malloc(enc_msg.data_length * sizeof(int16_t));
 
   nh.initNode();
   nh.subscribe(sub);

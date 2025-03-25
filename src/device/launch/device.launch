@@ -3,7 +3,13 @@
         <remap from="/joy" to="/device/joy"/>
         <remap from="/joy/set_feedback" to="/device/joy/set_feedback"/>
     </node>
-    <node name="motor" pkg="device" type="arduino" output="log" respawn="true">
+    
+    <node pkg="rosserial_python" type="serial_node.py" name="nexus_base" respawn="true" output="screen">
+        <param name="port" value="/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AI05UAHH-if00-port0" />
+        <param name="baud" value="57600" />
+    </node>
+    
+    <node name="motor" pkg="device" type="motor" output="screen" respawn="true" launch-prefix="bash -c 'sleep 10; exec '">
         <param name="R" value="0.05" />
         <param name="D" value="0.175" />
         <param name="motor_kp" value="1.0" />
@@ -12,9 +18,10 @@
         <param name="pid_min_out" value="-150.0" />
         <param name="pid_max_out" value="150.0" />
     </node>
+
     <node ns="imu" name="imu_node" pkg="imu_bno055" type="bno055_i2c_node" respawn="true" respawn_delay="2" output="log">
         <param name="device" type="string" value="/dev/i2c-1"/>
-        <param name="address" type="int" value="40"/> <!-- 0x28 == 40 is the default for BNO055 -->
+        <param name="address" type="int" value="40"/> <!--0x28 == 40 is the default for BNO055-->
         <param name="frame_id" type="string" value="imu"/>
         <remap from="/imu/data" to="/device/imu/data"/>
         <remap from="/imu/mag" to="/device/imu/mag"/>
@@ -22,6 +29,7 @@
         <remap from="/imu/status" to="/device/imu/status"/>
         <remap from="/imu/temp" to="/device/imu/temp"/>
     </node>
+    
     <node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="log">
         <param name="serial_port"         type="string" value="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0"/>
         <param name="serial_baudrate"     type="int"    value="115200"/>
