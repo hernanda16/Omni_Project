@@ -223,7 +223,10 @@ void joy_callback(const sensor_msgs::Joy::ConstPtr& msg)
     buttons.square = msg->buttons[2];
     buttons.triangle = msg->buttons[3];
 
-    controlled_by = JOYSTICK;
+    if (buttons.x == 1)
+        controlled_by = KEYBOARD;
+    else
+        controlled_by = JOYSTICK;
 
     // printf("left: (x: %.2f, y: %.2f), right: (x: %.2f, y: %.2f)\n", axis_left.x, axis_left.y, axis_right.x, axis_right.y);
     // printf("buttons: (x: %d, o: %d, sq: %d, tr: %d)\n", buttons.x, buttons.o, buttons.square, buttons.triangle);
@@ -244,8 +247,9 @@ void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 
     for (int i = 0; i < msg->ranges.size(); i++) {
         if (msg->ranges[i] < msg->range_max) {
-            temp.x = msg->ranges[i] * cos(msg->angle_min + i * msg->angle_increment);
-            temp.y = msg->ranges[i] * sin(msg->angle_min + i * msg->angle_increment);
+            float angle = msg->angle_min + i * msg->angle_increment + tf_lidar2base_theta;
+            temp.x = msg->ranges[i] * cos(angle);
+            temp.y = msg->ranges[i] * sin(angle);
             lidar_data.push_back(temp);
         }
     }

@@ -1,0 +1,4 @@
+<launch>
+    <param name="robot_num" value="1" />
+    <node name="comm_node" pkg="comm" type="comm_node" output="screen" respawn="true" />
+</launch>
