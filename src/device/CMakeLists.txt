@@ -7,12 +7,12 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   sensor_msgs
-  rosserial_arduino
+  serial
 )
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs sensor_msgs rosserial_arduino
+  CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs sensor_msgs serial
 )
 
 include_directories(
