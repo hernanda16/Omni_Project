@@ -3,12 +3,16 @@
 
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
 #include <ros/package.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Joy.h>
 #include <sensor_msgs/LaserScan.h>
 #include <std_msgs/Int32MultiArray.h>
+#include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
+#include <visualization_msgs/Marker.h>
 
 #include <sys/ioctl.h>
 #include <termios.h>
@@ -20,6 +24,8 @@
 #define MANUAL 0
 #define AUTO 1
 #define DEBUG 2
+
+#define DEG2RAD(deg) ((deg) * M_PI / 180.0)
 
 typedef struct {
     float x;
@@ -78,6 +84,10 @@ ros::Subscriber sub_lidar;
 ros::Subscriber sub_encoder;
 ros::Publisher pub_cmd_vel;
 ros::Publisher pub_robot_pose;
+ros::Publisher pub_robot_odom;
+ros::Publisher pub_marker;
+
+tf::TransformBroadcaster* tf_broadcaster;
 
 // Function prototypes
 void timer_callback(const ros::TimerEvent&);

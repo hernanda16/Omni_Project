@@ -7,6 +7,12 @@
         "/opt/ros/noetic/lib/python3/dist-packages"
     ],
     "files.associations": {
-        "random": "cpp"
+        "*.json": "cpp",
+        "random": "cpp",
+        "array": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "ranges": "cpp",
+        "span": "cpp"
     }
 }
