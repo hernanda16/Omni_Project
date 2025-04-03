@@ -1,0 +1,3 @@
+<launch>
+    <node name="gazebo_publish" pkg="device" type="gazebo_publish" output="log" respawn="true" />
+</launch>
