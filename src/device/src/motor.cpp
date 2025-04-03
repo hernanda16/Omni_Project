@@ -1,98 +1,115 @@
-#include "device/motor.hpp"
+#include <ros/ros.h>
+#include <serial/serial.h>
+#include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/String.h>
 
-NexusMotorController::NexusMotorController()
-    : wheelSpeed({ 0, 0, 0, 0 })
-    , wheelDeg({ 315, 45, 135, 225 })
-    , wheelSin({ sin(wheelDeg[0] * DEG2RAD), sin(wheelDeg[1] * DEG2RAD), sin(wheelDeg[2] * DEG2RAD), sin(wheelDeg[3] * DEG2RAD) })
-    , wheelCos({ cos(wheelDeg[0] * DEG2RAD), cos(wheelDeg[1] * DEG2RAD), cos(wheelDeg[2] * DEG2RAD), cos(wheelDeg[3] * DEG2RAD) })
-    , vel_fb({ 0, 0, 0, 0 })
-    , prev_vel_fb({ 0, 0, 0, 0 })
-    , lin_x(0)
-    , lin_y(0)
-    , ang_z(0)
-    , dt(0)
-{
-    WHEEL_RADIUS = nh.param<float>("R", 0.05f);
-    DISTANCE_W2MID = nh.param<float>("D", 0.175f);
-    Kp = nh.param<float>("motor_kp", 1.0f);
-    Ki = nh.param<float>("motor_ki", 0.0f);
-    Kd = nh.param<float>("motor_kd", 0.0f);
-    minOutput = nh.param<float>("pid_min_out", -150.0f);
-    maxOutput = nh.param<float>("pid_max_out", 150.0f);
+// Serial port object
+serial::Serial ser;
 
-    printf("======================================\n");
-    printf("        MOTOR NODE PARAMETERS         \n");
-    printf("======================================\n");
-    printf("Wheel Radius\t: %.2f\n", WHEEL_RADIUS);
-    printf("Distance W2MID\t: %.2f\n", DISTANCE_W2MID);
-    printf("Motor Kp\t: %.2f\n", Kp);
-    printf("Motor Ki\t: %.2f\n", Ki);
-    printf("Motor Kd\t: %.2f\n", Kd);
-    printf("PID Min Out\t: %.2f\n", minOutput);
-    printf("PID Max Out\t: %.2f\n", maxOutput);
-    printf("======================================\n");
+// Callback untuk mengirim data ke Arduino
+void sendDataCallback(const std_msgs::Float32MultiArray::ConstPtr& msg) {
+    if (msg->data.size() == 3) {
+        // Format data: 'e l k a' + 3 float
+        uint8_t buffer[16];
+        buffer[0] = 'e';
+        buffer[1] = 'l';
+        buffer[2] = 'k';
+        buffer[3] = 'a';
 
-    for (int i = 0; i < 4; i++) {
-        myPID_wheel.emplace_back(Kp, Ki, Kd, TS, minOutput, maxOutput, AUTOMATIC, DIRECT);
-    }
+        // Copy float data (x, y, z) ke buffer
+        memcpy(&buffer[4], &msg->data[0], sizeof(float)); // x
+        memcpy(&buffer[8], &msg->data[1], sizeof(float)); // y
+        memcpy(&buffer[12], &msg->data[2], sizeof(float)); // z
 
-    cmd_motor_pub = nh.advertise<std_msgs::Int16MultiArray>("/device/cmd_motor", QUEUE_SIZE);
-    cmd_vel_sub = nh.subscribe<geometry_msgs::Twist>("/robot/cmd_vel", QUEUE_SIZE, &NexusMotorController::velocityCallback, this);
-    enc_sub = nh.subscribe<std_msgs::Int16MultiArray>("/device/raw_enc", QUEUE_SIZE, &NexusMotorController::encoderCallback, this);
-
-    tim_motor = nh.createTimer(ros::Duration(0.01), &NexusMotorController::motorTimer, this);
-
-    last_time = ros::Time::now();
-}
-
-void NexusMotorController::velocityCallback(const geometry_msgs::Twist::ConstPtr& twist_aux)
-{
-    lin_x = -twist_aux->linear.x * 10;
-    lin_y = -twist_aux->linear.y * 10;
-    ang_z = -twist_aux->angular.z * 10;
-
-    // [ INFO] [1742819912.256170617]: lin_x: 0.000000, lin_y: 0.000000, ang_z: 0.000000, WHEEL_RADIUS: 0.050000, DISTANCE_W2MID: 0.175000, wheelSin: [0.707107, 0.707107, -0.707107, -0.707107], wheelCos: [0.707107, -0.707107, -0.707107, 0.707107]
-
-    wheelSpeed[0] = 1 / WHEEL_RADIUS * (lin_x * wheelCos[0] + lin_y * wheelSin[0] + DISTANCE_W2MID * ang_z);
-    wheelSpeed[1] = 1 / WHEEL_RADIUS * (lin_x * wheelCos[1] + lin_y * wheelSin[1] + DISTANCE_W2MID * ang_z);
-    wheelSpeed[2] = 1 / WHEEL_RADIUS * (lin_x * wheelCos[2] + lin_y * wheelSin[2] + DISTANCE_W2MID * ang_z);
-    wheelSpeed[3] = 1 / WHEEL_RADIUS * (lin_x * wheelCos[3] + lin_y * wheelSin[3] + DISTANCE_W2MID * ang_z);
-}
-
-void NexusMotorController::encoderCallback(const std_msgs::Int16MultiArray::ConstPtr& enc_aux)
-{
-    ros::Time current_time = ros::Time::now();
-    dt = (current_time - last_time).toSec();
-    last_time = current_time;
-
-    for (int i = 0; i < 4; i++) {
-        vel_fb[i] = enc_aux->data[i] * CPP2RADPS;
+        // Kirim data ke Arduino
+        ser.write(buffer, 16);
+        ROS_INFO("Sent to Arduino: x=%.2f, y=%.2f, z=%.2f", msg->data[0], msg->data[1], msg->data[2]);
+    } else {
+        ROS_WARN("Invalid data size. Expected 3 floats.");
     }
 }
 
-void NexusMotorController::motorTimer(const ros::TimerEvent&)
-{
-    std_msgs::Int16MultiArray cmd_motor_msg;
-    for (int8_t i = 0; i < 4; i++) {
-        myPID_wheel[i].PIDSetpointSet(wheelSpeed[i]);
-        myPID_wheel[i].PIDInputSet(vel_fb[i]);
-        myPID_wheel[i].PIDCompute();
-        short motor_command = (short)round(myPID_wheel[i].PIDOutputGet());
-        cmd_motor_msg.data.push_back(motor_command);
+int main(int argc, char** argv) {
+    ros::init(argc, argv, "arduino_serial_node");
+    ros::NodeHandle nh;
+
+    // Publisher untuk menerima data dari Arduino
+    ros::Publisher feedback_pub = nh.advertise<std_msgs::Float32MultiArray>("arduino_feedback", 10);
+
+    // Subscriber untuk mengirim data ke Arduino
+    ros::Subscriber setpoint_sub = nh.subscribe("arduino_setpoint", 10, sendDataCallback);
+
+    // Serial port setup
+    try {
+        ser.setPort("/dev/ttyUSB0"); // Ganti dengan port serial Arduino
+        ser.setBaudrate(115200);
+        serial::Timeout to = serial::Timeout::simpleTimeout(1000);
+        ser.setTimeout(to);
+        ser.open();
+    } catch (serial::IOException& e) {
+        ROS_ERROR("Unable to open port.");
+        return -1;
     }
 
-    ROS_INFO("Publishing motor commands: [%d, %d, %d, %d]",
-        cmd_motor_msg.data[0], cmd_motor_msg.data[1], cmd_motor_msg.data[2], cmd_motor_msg.data[3]);
-    cmd_motor_pub.publish(cmd_motor_msg);
-}
+    if (ser.isOpen()) {
+        ROS_INFO("Serial port initialized.");
+    } else {
+        return -1;
+    }
 
-int main(int argc, char** argv)
-{
-    ros::init(argc, argv, "nmc");
-    NexusMotorController nmc;
+    ros::Rate loop_rate(20); // Sesuaikan dengan LOOP_FREQUENCY Arduino (20 Hz)
 
-    ros::MultiThreadedSpinner spinner(0);
-    spinner.spin();
-    // ros::spin();
+    uint8_t buffer[20]; // Buffer untuk membaca data
+    size_t bufferIndex = 0; // Indeks buffer
+
+    while (ros::ok()) {
+        // Baca data dari Arduino byte per byte
+        while (ser.available() > 0) {
+            uint8_t incomingByte = ser.read()[0];
+
+            // Tambahkan byte ke buffer
+            buffer[bufferIndex] = incomingByte;
+            bufferIndex++;
+
+            // Jika buffer penuh, periksa apakah itu header yang valid
+            if (bufferIndex == 4) {
+                if (buffer[0] == 'e' && buffer[1] == 'l' && buffer[2] == 'k' && buffer[3] == 'a') {
+                    // Header valid ditemukan, baca data float
+                    if (ser.available() >= 16) { // Pastikan ada cukup data untuk 4 float
+                        ser.read(buffer + 4, 16); // Baca sisa data
+
+                        float vel_fb[4];
+                        memcpy(&vel_fb[0], &buffer[4], sizeof(float)); // Motor 0
+                        memcpy(&vel_fb[1], &buffer[8], sizeof(float)); // Motor 1
+                        memcpy(&vel_fb[2], &buffer[12], sizeof(float)); // Motor 2
+                        memcpy(&vel_fb[3], &buffer[16], sizeof(float)); // Motor 3
+
+                        // Publikasikan data feedback
+                        std_msgs::Float32MultiArray feedback_msg;
+                        feedback_msg.data.resize(4);
+                        feedback_msg.data[0] = vel_fb[0];
+                        feedback_msg.data[1] = vel_fb[1];
+                        feedback_msg.data[2] = vel_fb[2];
+                        feedback_msg.data[3] = vel_fb[3];
+                        feedback_pub.publish(feedback_msg);
+
+                        // ROS_INFO("Received from Arduino: vel_fb[0]=%.2f, vel_fb[1]=%.2f, vel_fb[2]=%.2f, vel_fb[3]=%.2f",
+                        //          vel_fb[0], vel_fb[1], vel_fb[2], vel_fb[3]);
+                    }
+                    bufferIndex = 0; // Reset buffer setelah data berhasil dibaca
+                } else {
+                    // Geser buffer untuk mencari header berikutnya
+                    buffer[0] = buffer[1];
+                    buffer[1] = buffer[2];
+                    buffer[2] = buffer[3];
+                    bufferIndex = 3; // Tetap di 3 karena kita geser buffer
+                }
+            }
+        }
+
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
+
     return 0;
 }
