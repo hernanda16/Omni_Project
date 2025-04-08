@@ -116,10 +116,10 @@ int main(int argc, char** argv) {
                         // Publikasikan data feedback
                         std_msgs::Int32MultiArray feedback_msg; // Change message type to Int32MultiArray
                         feedback_msg.data.resize(4);
-                        feedback_msg.data[0] = static_cast<int32_t>(vel_fb[0]); // Convert float to int32
-                        feedback_msg.data[1] = static_cast<int32_t>(vel_fb[1]);
-                        feedback_msg.data[2] = static_cast<int32_t>(vel_fb[2]);
-                        feedback_msg.data[3] = static_cast<int32_t>(vel_fb[3]);
+                        feedback_msg.data[0] = static_cast<int32_t>(vel_fb[0]*100); // Convert float to int32
+                        feedback_msg.data[1] = static_cast<int32_t>(vel_fb[1]*100);
+                        feedback_msg.data[2] = static_cast<int32_t>(vel_fb[2]*100);
+                        feedback_msg.data[3] = static_cast<int32_t>(vel_fb[3]*100);
                         feedback_pub.publish(feedback_msg);
 
                         // ROS_INFO("Received from Arduino: vel_fb[0]=%.2f, vel_fb[1]=%.2f, vel_fb[2]=%.2f, vel_fb[3]=%.2f",

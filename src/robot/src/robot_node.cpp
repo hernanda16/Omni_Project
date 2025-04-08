@@ -423,8 +423,8 @@ void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg)
 
     float dx = 0.0, dy = 0.0, dtheta = 0.0;
     for (int i = 0; i < 4; i++) {
-        dx += enc_diff[i] * cos(angle[i] * M_PI / 180.0);
-        dy += enc_diff[i] * sin(angle[i] * M_PI / 180.0);
+        dx += enc_buffer[i] * cos(angle[i] * M_PI / 180.0);
+        dy += enc_buffer[i] * sin(angle[i] * M_PI / 180.0);
     }
 
     robot_pose.x += (dx * cos(robot_pose.theta) - dy * sin(robot_pose.theta)) * dt;

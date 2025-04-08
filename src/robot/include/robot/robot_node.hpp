@@ -73,7 +73,7 @@ uint16_t robot_state = 0;
 uint8_t controlled_by = 0; // 0: keyboard, 1: joystick
 
 uint8_t use_slam = 0;
-uint8_t use_sim = 1;
+uint8_t use_sim = 0;
 
 std::vector<point2d_t> lidar_data;
 

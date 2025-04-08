@@ -42,7 +42,7 @@ float vel_set[4];     // Setpoint velocity in rad/s
 
 // PID Parameters
 float kp = 18;   // Proportional gain
-float ki = 0.8;   // Integral gain
+float ki = 3.2;   // Integral gain
 float kd = 0.15;  // Derivative gain
 
 float error[4], sum_error[4], last_error[4];
