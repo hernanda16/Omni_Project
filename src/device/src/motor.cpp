@@ -1,47 +1,76 @@
 #include <ros/ros.h>
 #include <serial/serial.h>
-#include <std_msgs/Float32MultiArray.h>
-#include <std_msgs/String.h>
+// #include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/Int32MultiArray.h>
+#include <geometry_msgs/Twist.h>
+// #include <std_msgs/String.h>
 
 // Serial port object
 serial::Serial ser;
 
+float linx = 0.0;
+float liny = 0.0;
+float angz = 0.0;
+
 // Callback untuk mengirim data ke Arduino
-void sendDataCallback(const std_msgs::Float32MultiArray::ConstPtr& msg) {
-    if (msg->data.size() == 3) {
-        // Format data: 'e l k a' + 3 float
-        uint8_t buffer[16];
-        buffer[0] = 'e';
-        buffer[1] = 'l';
-        buffer[2] = 'k';
-        buffer[3] = 'a';
+void sendVelocityCallback(const geometry_msgs::Twist::ConstPtr& msg) {
+    // Format data: 'e l k a' + 3 float
+    uint8_t buffer[16];
+    buffer[0] = 'e';
+    buffer[1] = 'l';
+    buffer[2] = 'k';
+    buffer[3] = 'a';
 
-        // Copy float data (x, y, z) ke buffer
-        memcpy(&buffer[4], &msg->data[0], sizeof(float)); // x
-        memcpy(&buffer[8], &msg->data[1], sizeof(float)); // y
-        memcpy(&buffer[12], &msg->data[2], sizeof(float)); // z
+    // Copy float data (linear.x, linear.y, angular.z) to buffer
+    linx = msg->linear.x;
+    liny = msg->linear.y;
+    angz = msg->angular.z;
 
-        // Kirim data ke Arduino
-        ser.write(buffer, 16);
-        ROS_INFO("Sent to Arduino: x=%.2f, y=%.2f, z=%.2f", msg->data[0], msg->data[1], msg->data[2]);
-    } else {
-        ROS_WARN("Invalid data size. Expected 3 floats.");
-    }
+    memcpy(&buffer[4], &linx, sizeof(float)); // linear.x
+    memcpy(&buffer[8], &liny, sizeof(float)); // linear.y
+    memcpy(&buffer[12], &angz, sizeof(float)); // angular.z
+
+    // Kirim data ke Arduino
+    ser.write(buffer, 16);
+    ROS_INFO("Sent to Arduino: x=%.2f, y=%.2f, z=%.2f", msg->linear.x, msg->linear.y, msg->angular.z);
 }
+// void sendDataCallback(const std_msgs::Float32MultiArray::ConstPtr& msg) {
+//     if (msg->data.size() == 3) {
+//         // Format data: 'e l k a' + 3 float
+//         uint8_t buffer[16];
+//         buffer[0] = 'e';
+//         buffer[1] = 'l';
+//         buffer[2] = 'k';
+//         buffer[3] = 'a';
+
+//         // Copy float data (x, y, z) ke buffer
+//         memcpy(&buffer[4], &msg->data[0], sizeof(float)); // x
+//         memcpy(&buffer[8], &msg->data[1], sizeof(float)); // y
+//         memcpy(&buffer[12], &msg->data[2], sizeof(float)); // z
+
+//         // Kirim data ke Arduino
+//         ser.write(buffer, 16);
+//         ROS_INFO("Sent to Arduino: x=%.2f, y=%.2f, z=%.2f", msg->data[0], msg->data[1], msg->data[2]);
+//     } else {
+//         ROS_WARN("Invalid data size. Expected 3 floats.");
+//     }
+// }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "arduino_serial_node");
+    ros::init(argc, argv, "motor_serial_node");
     ros::NodeHandle nh;
 
     // Publisher untuk menerima data dari Arduino
-    ros::Publisher feedback_pub = nh.advertise<std_msgs::Float32MultiArray>("arduino_feedback", 10);
+    // ros::Publisher feedback_pub = nh.advertise<std_msgs::Float32MultiArray>("arduino_feedback", 10);
+    ros::Publisher feedback_pub = nh.advertise<std_msgs::Int32MultiArray>("/device/motor/raw_enc", 1); // Change message type to Int32MultiArray
 
     // Subscriber untuk mengirim data ke Arduino
-    ros::Subscriber setpoint_sub = nh.subscribe("arduino_setpoint", 10, sendDataCallback);
+    // ros::Subscriber setpoint_sub = nh.subscribe("/robot/cmd_vel", 1, sendDataCallback);
+    ros::Subscriber setpoint_sub = nh.subscribe("/robot/cmd_vel", 1, sendVelocityCallback);
 
     // Serial port setup
     try {
-        ser.setPort("/dev/ttyUSB0"); // Ganti dengan port serial Arduino
+        ser.setPort("/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AI05UAHH-if00-port0"); // Ganti dengan port serial Arduino
         ser.setBaudrate(115200);
         serial::Timeout to = serial::Timeout::simpleTimeout(1000);
         ser.setTimeout(to);
@@ -85,12 +114,12 @@ int main(int argc, char** argv) {
                         memcpy(&vel_fb[3], &buffer[16], sizeof(float)); // Motor 3
 
                         // Publikasikan data feedback
-                        std_msgs::Float32MultiArray feedback_msg;
+                        std_msgs::Int32MultiArray feedback_msg; // Change message type to Int32MultiArray
                         feedback_msg.data.resize(4);
-                        feedback_msg.data[0] = vel_fb[0];
-                        feedback_msg.data[1] = vel_fb[1];
-                        feedback_msg.data[2] = vel_fb[2];
-                        feedback_msg.data[3] = vel_fb[3];
+                        feedback_msg.data[0] = static_cast<int32_t>(vel_fb[0]); // Convert float to int32
+                        feedback_msg.data[1] = static_cast<int32_t>(vel_fb[1]);
+                        feedback_msg.data[2] = static_cast<int32_t>(vel_fb[2]);
+                        feedback_msg.data[3] = static_cast<int32_t>(vel_fb[3]);
                         feedback_pub.publish(feedback_msg);
 
                         // ROS_INFO("Received from Arduino: vel_fb[0]=%.2f, vel_fb[1]=%.2f, vel_fb[2]=%.2f, vel_fb[3]=%.2f",
