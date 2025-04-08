@@ -2,13 +2,19 @@
 #define ROBOT_NODE_HPP
 
 #include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
 #include <ros/package.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Joy.h>
 #include <sensor_msgs/LaserScan.h>
 #include <std_msgs/Int32MultiArray.h>
+#include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
+#include <visualization_msgs/Marker.h>
 
 #include <sys/ioctl.h>
 #include <termios.h>
@@ -20,6 +26,8 @@
 #define MANUAL 0
 #define AUTO 1
 #define DEBUG 2
+
+#define DEG2RAD(deg) ((deg) * M_PI / 180.0)
 
 typedef struct {
     float x;
@@ -64,6 +72,9 @@ pose_t robot_vel = { 0.0, 0.0, 0.0 }; // vx, vy, omega
 uint16_t robot_state = 0;
 uint8_t controlled_by = 0; // 0: keyboard, 1: joystick
 
+uint8_t use_slam = 0;
+uint8_t use_sim = 1;
+
 std::vector<point2d_t> lidar_data;
 
 axis_t axis_left;
@@ -76,8 +87,16 @@ ros::Subscriber sub_joy;
 ros::Subscriber sub_imu;
 ros::Subscriber sub_lidar;
 ros::Subscriber sub_encoder;
+ros::Subscriber sub_amcl_pose;
 ros::Publisher pub_cmd_vel;
 ros::Publisher pub_robot_pose;
+ros::Publisher pub_robot_odom;
+ros::Publisher pub_marker;
+
+tf::TransformBroadcaster* tf_broadcaster;
+tf::TransformListener* tf_listener;
+
+geometry_msgs::PoseWithCovarianceStamped amcl_pose;
 
 // Function prototypes
 void timer_callback(const ros::TimerEvent&);
@@ -85,7 +104,11 @@ void joy_callback(const sensor_msgs::Joy::ConstPtr& msg);
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg);
 void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& msg);
 void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg);
+void amcl_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
 
+void dummy_odom();
+void update_robot_pose();
+float compute_amcl_trust();
 void keyboard_handler();
 void joystick_handler();
 void state_control();

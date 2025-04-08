@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   sensor_msgs
   serial
+  roslib
+  tf
 )
 
 catkin_package(
@@ -22,7 +24,8 @@ include_directories(
 
 add_executable(motor src/motor.cpp)
 add_dependencies(motor ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(motor ${catkin_LIBRARIES})
 
-target_link_libraries(motor
-  ${catkin_LIBRARIES}
-)
+add_executable(gazebo_publish src/gazebo_publish.cpp)
+add_dependencies(gazebo_publish ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(gazebo_publish ${catkin_LIBRARIES})

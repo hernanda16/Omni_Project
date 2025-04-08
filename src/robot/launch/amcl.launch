@@ -1,0 +1,22 @@
+<launch>
+  <!-- Map Server -->
+  <node pkg="map_server" type="map_server" name="map_server" 
+        args="$(find robot)/maps/20250403_200900.yaml"/>
+
+  <!-- AMCL Node -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <rosparam file="$(find robot)/config/amcl_params.yaml" command="load"/>
+    
+    <!-- TF Frame Remaps -->
+    <param name="odom_frame_id" value="odom_fake"/>
+    <param name="base_frame_id" value="base_footprint_fake"/>
+    <param name="global_frame_id" value="map"/>
+
+    <!-- Sensor Input -->
+    <remap from="scan" to="/device/lidar/scan"/>
+  </node>
+
+  <!-- RViz Visualization -->
+  <node pkg="rviz" type="rviz" name="rviz" 
+        args="-d $(find robot)/rviz/omni_lss.rviz"/>
+</launch>

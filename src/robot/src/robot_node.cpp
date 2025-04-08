@@ -42,9 +42,15 @@ int main(int argc, char** argv)
     sub_imu = nh.subscribe<sensor_msgs::Imu>("/device/imu/data", 1, imu_callback);
     sub_lidar = nh.subscribe<sensor_msgs::LaserScan>("/device/lidar/scan", 1, lidar_callback);
     sub_encoder = nh.subscribe<std_msgs::Int32MultiArray>("/device/motor/raw_enc", 1, encoder_callback);
+    sub_amcl_pose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, amcl_pose_callback);
     pub_cmd_vel = nh.advertise<geometry_msgs::Twist>("/robot/cmd_vel", 1);
     pub_robot_pose = nh.advertise<geometry_msgs::Pose2D>("/robot/pose", 1);
-    timer_main = nh.createTimer(ros::Duration(0.02), timer_callback);
+    pub_robot_odom = nh.advertise<nav_msgs::Odometry>("/robot/odom", 1);
+    pub_marker = nh.advertise<visualization_msgs::Marker>("/robot/marker", 1);
+    timer_main = nh.createTimer(ros::Duration(0.01), timer_callback);
+
+    tf_broadcaster = new tf::TransformBroadcaster;
+    tf_listener = new tf::TransformListener;
 
     spinner.spin();
     return 0;
@@ -52,8 +58,42 @@ int main(int argc, char** argv)
 
 void timer_callback(const ros::TimerEvent&)
 {
+    if (use_sim)
+        dummy_odom();
+
     state_control();
     publish_all();
+}
+
+void dummy_odom()
+{
+    robot_pose.x += robot_vel.y * 0.01 * cosf(DEG2RAD(robot_pose.theta));
+    robot_pose.y += robot_vel.y * 0.01 * sinf(DEG2RAD(robot_pose.theta));
+}
+
+void update_robot_pose()
+{
+    float weight_amcl = compute_amcl_trust();
+    float weight_odom = 1.0 - weight_amcl;
+
+    robot_pose.x = weight_amcl * amcl_pose.pose.pose.position.x + weight_odom * (robot_pose.x + robot_vel.y * 0.01 * cosf(DEG2RAD(robot_pose.theta)));
+    robot_pose.y = weight_amcl * amcl_pose.pose.pose.position.y + weight_odom * (robot_pose.y + robot_vel.y * 0.01 * sinf(DEG2RAD(robot_pose.theta)));
+    robot_pose.theta = weight_amcl * (tf::getYaw(amcl_pose.pose.pose.orientation) * 180 / M_PI) + weight_odom * robot_pose.theta;
+
+    if (robot_pose.theta > 180.0) {
+        robot_pose.theta -= 360.0;
+    } else if (robot_pose.theta < -180.0) {
+        robot_pose.theta += 360.0;
+    }
+}
+
+float compute_amcl_trust()
+{
+    double position_uncertainty = sqrt(amcl_pose.pose.covariance[0] + amcl_pose.pose.covariance[7]);
+    double orientation_uncertainty = sqrt(amcl_pose.pose.covariance[35]);
+
+    float trust = exp(-position_uncertainty - orientation_uncertainty);
+    return std::max(0.1f, std::min(0.9f, trust)); // Keep trust between 0.1 and 0.9
 }
 
 void keyboard_handler()
@@ -198,10 +238,19 @@ uint8_t position_control(float x, float y, float theta)
 
 void publish_all()
 {
+    static uint8_t counter = 0;
+    ros::Time current_time = ros::Time::now();
+
     geometry_msgs::Twist cmd_vel;
-    cmd_vel.linear.x = robot_vel.x;
-    cmd_vel.linear.y = robot_vel.y;
-    cmd_vel.angular.z = robot_vel.theta;
+    if (use_sim) {
+        cmd_vel.linear.y = robot_vel.x;
+        cmd_vel.linear.x = robot_vel.y;
+        cmd_vel.angular.z = robot_vel.theta;
+    } else {
+        cmd_vel.linear.x = robot_vel.x;
+        cmd_vel.linear.y = robot_vel.y;
+        cmd_vel.angular.z = robot_vel.theta;
+    }
     pub_cmd_vel.publish(cmd_vel);
 
     geometry_msgs::Pose2D pose_msg;
@@ -209,6 +258,82 @@ void publish_all()
     pose_msg.y = robot_pose.y;
     pose_msg.theta = robot_pose.theta;
     pub_robot_pose.publish(pose_msg);
+
+    if (counter++ % 3 == 0) {
+        // TF: map -> odom (fixed)
+        tf::Transform tf_map2odom;
+        tf_map2odom.setOrigin(tf::Vector3(0.0, 0.0, 0.0));
+        tf::Quaternion q;
+        q.setRPY(0, 0, 0);
+        tf_map2odom.setRotation(q);
+
+        std::string odom_frame = use_sim ? "odom_fake" : "odom";
+        tf_broadcaster->sendTransform(tf::StampedTransform(tf_map2odom, current_time, "map", odom_frame));
+
+        // TF: odom -> base_footprint (estimated)
+        std::string base_frame = use_sim ? "base_footprint_fake" : "base_footprint";
+        tf::Transform tf_odom2base;
+        tf_odom2base.setOrigin(tf::Vector3(robot_pose.x, robot_pose.y, 0.0));
+        tf_odom2base.setRotation(tf::createQuaternionFromYaw(DEG2RAD(robot_pose.theta)));
+        tf_broadcaster->sendTransform(tf::StampedTransform(tf_odom2base, current_time, odom_frame, base_frame));
+
+        // Publish: odom -> base_footprint (estimated)
+        nav_msgs::Odometry odom_msg;
+        odom_msg.header.stamp = current_time;
+        odom_msg.header.frame_id = odom_frame;
+        odom_msg.child_frame_id = base_frame;
+        odom_msg.pose.pose.position.x = robot_pose.x;
+        odom_msg.pose.pose.position.y = robot_pose.y;
+        odom_msg.pose.pose.position.z = 0.0;
+        odom_msg.pose.pose.orientation = tf::createQuaternionMsgFromYaw(DEG2RAD(robot_pose.theta));
+        pub_robot_odom.publish(odom_msg);
+
+        // TF: base_footprint -> base_link (robot local)
+        tf::Transform tf_base2base;
+        tf_base2base.setOrigin(tf::Vector3(0.0, 0.0, 0.0));
+        q.setRPY(0, 0, 0);
+        tf_base2base.setRotation(q);
+        tf_broadcaster->sendTransform(tf::StampedTransform(tf_base2base, current_time, base_frame, "base_link"));
+
+        // TF: base_link -> base_scan
+        tf::Transform tf_base2scan;
+        tf_base2scan.setOrigin(tf::Vector3(0.0, 0.0, 0.0));
+        q.setRPY(0, 0, 0);
+        tf_base2scan.setRotation(q);
+        tf_broadcaster->sendTransform(tf::StampedTransform(tf_base2scan, current_time, "base_link", "base_scan"));
+
+        visualization_msgs::Marker marker_msg;
+
+        marker_msg.header.frame_id = odom_frame;
+        marker_msg.header.stamp = current_time;
+        marker_msg.ns = "robot";
+        marker_msg.id = 0;
+        marker_msg.type = visualization_msgs::Marker::CUBE;
+        marker_msg.action = visualization_msgs::Marker::ADD;
+        marker_msg.scale.x = 0.25;
+        marker_msg.scale.y = 0.25;
+        marker_msg.scale.z = 0.25;
+        marker_msg.color.a = 1.0;
+        marker_msg.color.r = 0.0;
+        marker_msg.color.g = 1.0;
+        marker_msg.color.b = 0.0;
+
+        try {
+            tf::StampedTransform transform;
+            tf_listener->lookupTransform("map", base_frame, ros::Time(0), transform);
+            marker_msg.pose.position.x = transform.getOrigin().x();
+            marker_msg.pose.position.y = transform.getOrigin().y();
+            marker_msg.pose.orientation.x = transform.getRotation().x();
+            marker_msg.pose.orientation.y = transform.getRotation().y();
+            marker_msg.pose.orientation.z = transform.getRotation().z();
+            marker_msg.pose.orientation.w = transform.getRotation().w();
+        } catch (tf::TransformException& ex) {
+            ROS_WARN("%s", ex.what());
+            return;
+        }
+
+        pub_marker.publish(marker_msg);
+    }
 }
 
 void joy_callback(const sensor_msgs::Joy::ConstPtr& msg)
@@ -237,7 +362,21 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
     float buffer_theta = tf::getYaw(msg->orientation) * 180.0 / M_PI;
     static float prev_buffer_theta = buffer_theta;
     robot_pose.theta += buffer_theta - prev_buffer_theta;
+    static float last_theta = robot_pose.theta;
+
+    // ! SAFETY BECAUSE OF IMU NOISE !
+    if (fabs(robot_pose.theta - last_theta) > 90.0) {
+        robot_pose.theta = last_theta;
+    }
+
+    if (robot_pose.theta > 180.0) {
+        robot_pose.theta -= 360.0;
+    } else if (robot_pose.theta < -180.0) {
+        robot_pose.theta += 360.0;
+    }
+
     prev_buffer_theta = buffer_theta;
+    last_theta = robot_pose.theta;
 }
 
 void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
@@ -292,4 +431,11 @@ void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg)
     robot_pose.y += (dx * sin(robot_pose.theta) + dy * cos(robot_pose.theta)) * dt;
 
     prev_time = current_time;
+}
+
+void amcl_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg)
+{
+    amcl_pose = *msg;
+
+    update_robot_pose();
 }
