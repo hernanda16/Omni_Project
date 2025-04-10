@@ -28,6 +28,7 @@
 #define DEBUG 2
 
 #define DEG2RAD(deg) ((deg) * M_PI / 180.0)
+#define ENC2CM 0.4483067629
 
 typedef struct {
     float x;
@@ -72,8 +73,14 @@ pose_t robot_vel = { 0.0, 0.0, 0.0 }; // vx, vy, omega
 uint16_t robot_state = 0;
 uint8_t controlled_by = 0; // 0: keyboard, 1: joystick
 
-uint8_t use_slam = 0;
+uint8_t use_slam = 1;
 uint8_t use_sim = 0;
+uint8_t use_gmapping = 0;
+
+float initial_imu_yaw = 0.0f;
+bool imu_initialized = false;
+float initial_pose_theta = 0.0f;
+float last_safe_theta = 0.0f;
 
 std::vector<point2d_t> lidar_data;
 
@@ -121,6 +128,9 @@ void set_initial_pose(float x, float y, float theta)
     robot_pose.x = x;
     robot_pose.y = y;
     robot_pose.theta = theta;
+    initial_pose_theta = theta;
+    last_safe_theta = theta;
+    imu_initialized = false; // Force recalibration on next IMU reading
 }
 
 int8_t kbhit()

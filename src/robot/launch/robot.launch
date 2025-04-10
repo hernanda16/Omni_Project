@@ -19,12 +19,12 @@
         <!-- <remap from="/robot/odom"       to="/odom"/> -->
         <!-- <remap from="/robot/cmd_vel"    to="/cmd_vel"/> -->
     </node>
-    <!-- <include file="$(find device)/launch/device.launch" /> -->
+    <include file="$(find device)/launch/device.launch" />
     <!-- <include file="$(find comm)/launch/comm.launch" /> -->
 
-    <include file="$(find device)/launch/gazebo_publish.launch" />
-    <node name="joy_node" pkg="joy" type="joy_node" output="log" respawn="true">
-        <remap from="/joy" to="/device/joy"/>
-        <remap from="/joy/set_feedback" to="/device/joy/set_feedback"/>
-    </node>
+    <!-- <include file="$(find device)/launch/gazebo_publish.launch" /> -->
+    <!-- <node name="joy_node" pkg="joy" type="joy_node" output="log" respawn="true"> -->
+        <!-- <remap from="/joy" to="/device/joy"/> -->
+        <!-- <remap from="/joy/set_feedback" to="/device/joy/set_feedback"/> -->
+    <!-- </node> -->
 </launch>
