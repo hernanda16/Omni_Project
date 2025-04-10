@@ -35,7 +35,7 @@ const float ROBOT_RADIUS = 0.2;      // meters from center to wheel (jarak antar
 // Encoder Variables
 volatile long encTicks[4] = {0, 0, 0, 0};
 volatile long prev_encTicks[4] = {0, 0, 0, 0};
-
+int32_t buffEnc[4] = {0, 0, 0, 0};
 int32_t counts_per_period[4];
 float vel_fb[4];      // Feedback velocity in rad/s
 float vel_set[4];     // Setpoint velocity in rad/s
@@ -144,14 +144,16 @@ void loop() {
 
     // Hitung kecepatan feedback (vel_fb) dari encoder
     for (int i = 0; i < 4; i++) {
+      buffEnc[i] = (int32_t)encTicks[i];
       counts_per_period[i] = (int32_t)(encTicks[i] - prev_encTicks[i]);
       vel_fb[i] = ((float)counts_per_period[i] / COUNTS_PER_REV) * (2 * M_PI) * LOOP_FREQUENCY;
       prev_encTicks[i] = encTicks[i];
     }
 
     // Kirim data feedback ke serial
-    uint8_t serial_send[20] = {'e', 'l', 'k', 'a'};
-    memcpy(serial_send + 4, vel_fb, 16);
+    uint8_t serial_send[32] = {'e', 'l', 'k', 'a'};
+    // memcpy(serial_send + 4, vel_fb, 16);
+    memcpy(serial_send + 4, buffEnc, 16);
     for (int i = 0; i < 20; i++) {
       Serial.write(serial_send[i]);
     }
@@ -219,12 +221,27 @@ void setMotorPwm(float pwm[4]) {
   digitalWrite(M1_DIR_PIN, pwm[1] >= 0 ? HIGH : LOW);
   digitalWrite(M2_DIR_PIN, pwm[2] >= 0 ? HIGH : LOW);
   digitalWrite(M3_DIR_PIN, pwm[3] >= 0 ? HIGH : LOW);
+
+  // Serial.print("pwm[0]: ");
+  // Serial.print(pwm[0]);
+  // Serial.print("\tpwm[1]: ");
+  // Serial.print(pwm[1]);
+  // Serial.print("\tpwm[2]: ");
+  // Serial.print(pwm[2]);
+  // Serial.print("\tpwm[3]: ");
+  // Serial.println(pwm[3]);
      
   // Analog write secara manual untuk setiap motor
-  analogWrite(M0_PWM_PIN, abs(pwm[0]));
-  analogWrite(M1_PWM_PIN, abs(pwm[1]));
-  analogWrite(M2_PWM_PIN, abs(pwm[2]));
-  analogWrite(M3_PWM_PIN, abs(pwm[3]));
+  //if abs pwm < 10 write 0 else write the real value
+  analogWrite(M0_PWM_PIN, abs(pwm[0]) < 10 ? 0 : abs(pwm[0]));
+  analogWrite(M1_PWM_PIN, abs(pwm[1]) < 10 ? 0 : abs(pwm[1]));
+  analogWrite(M2_PWM_PIN, abs(pwm[2]) < 10 ? 0 : abs(pwm[2]));
+  analogWrite(M3_PWM_PIN, abs(pwm[3]) < 10 ? 0 : abs(pwm[3]));
+
+  // analogWrite(M0_PWM_PIN, abs(pwm[0]));
+  // analogWrite(M1_PWM_PIN, abs(pwm[1]));
+  // analogWrite(M2_PWM_PIN, abs(pwm[2]));
+  // analogWrite(M3_PWM_PIN, abs(pwm[3]));
 
   // Serial.print("PWM Values: ");
   // Serial.print(abs(pwm[0])); Serial.print("\t");
