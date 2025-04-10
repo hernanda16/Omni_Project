@@ -2,7 +2,7 @@
     
     <param name="initial_pose_x" value="0.0" />
     <param name="initial_pose_y" value="0.0" />
-    <param name="initial_pose_theta" value="90.0" />
+    <param name="initial_pose_theta" value="0.0" />
     <param name="max_lin_vel" value="0.22" />
     <!-- <param name="max_lin_vel" value="0.5" /> -->
     <param name="max_ang_vel" value="1" />

@@ -1,37 +1,88 @@
-# Particle Filter
-min_particles: 500
-max_particles: 3000
-kld_err: 0.01
-kld_z: 0.99
+#############################################
+#       AMCL Configuration File (Tunable)   #
+#  Works with: use_sim, use_slam, use_gmapping
+#############################################
 
-# Laser Model
-laser_min_range: 0.1
-laser_max_range: 5.0
-laser_max_beams: 360 # Should match your LIDAR's specs
+# =======================
+# 📌 PARTICLE FILTER SETUP
+# =======================
+min_particles: 800         # 🔧 Lower = faster, but less accurate
+                           # Recommended: 300-1000
 
-# Odometry Model
-odom_model_type: diff # Set to "diff" for differential drive
-odom_alpha1: 0.2
-odom_alpha2: 0.2
-odom_alpha3: 0.2
-odom_alpha4: 0.2
-odom_alpha5: 0.2 # Optional, helps if there’s drift
+max_particles: 1500        # 🔧 Higher = more accurate when uncertain, but slower
+                           # Recommended: 2000-3000 for large maps
 
-# Initial Pose Estimate
-initial_pose_x: 0.0
-initial_pose_y: 0.0
-initial_pose_a: 0.0
+kld_err: 0.05              # 🔧 Accuracy of particle filter (smaller = more particles)
+                           # Increase to ~0.05 for faster performance
 
-# Frame IDs (IMPORTANT for your TF structure)
-base_frame_id: "base_footprint_fake"
-odom_frame_id: "odom_fake"
-global_frame_id: "map"
+kld_z: 0.99                # 🔧 Confidence level (typically 0.95 to 0.99)
 
-# TF & Timing Configuration
+# =======================
+# 📌 LASER SCAN MODEL
+# =======================
+laser_min_range: 0.12      # ✔️ Based on your RPLIDAR’s min range
+laser_max_range: 6.0       # ✔️ Set to lidar's reliable range (RPLIDAR A1 ~6.0m)
+laser_max_beams: 360       # 🔧 Use all beams for accuracy (can reduce for performance)
+
+# =======================
+# 📌 ODOMETRY MOTION MODEL
+# =======================
+odom_model_type: omni      # ✔️ "omni" for omni robot
+
+odom_alpha1: 0.2           # 🔧 Noise in rotation from rotation
+odom_alpha2: 0.2           # 🔧 Noise in rotation from translation
+odom_alpha3: 0.2           # 🔧 Noise in translation from translation
+odom_alpha4: 0.2           # 🔧 Noise in translation from rotation
+odom_alpha5: 0.2           # 🔧 Drift correction (optional)
+
+# 🔧 Tuning Tips:
+# Increase values (0.3–0.5) if your odometry is **very noisy**
+# Lower values (0.05–0.15) if your odometry is **reliable**
+# Tune gradually, start with symmetric values
+
+# =======================
+# 📌 INITIAL POSE ESTIMATE
+# =======================
+initial_pose_x: 0.0        # 🔧 Initial X pose (meters)
+initial_pose_y: 0.0        # 🔧 Initial Y pose (meters)
+initial_pose_a: 0.0        # 🔧 Initial heading (radians, NOT degrees)
+
+# =======================
+# 📌 FRAME IDs (SET FROM CODE OR LAUNCH)
+# =======================
+# These should be set based on your flags (see launch tip below)
+base_frame_id: "base_footprint"   # Real robot: "base_footprint"
+odom_frame_id: "odom"             # Real robot: "odom"
+global_frame_id: "map"            # Static global frame
+
+# Launch Tip (dynamic based on use_sim):
+# <param name="base_frame_id" value="$(eval 'base_footprint_fake' if use_sim else 'base_footprint')" />
+
+# =======================
+# 📌 TF CONFIGURATION
+# =======================
 tf_broadcast: true
-tf_buffer_size: 120.0 # Large buffer for better sim stability
-transform_tolerance: 0.5 # Slightly high to tolerate fast updates
+tf_buffer_size: 120.0     # 🔧 Higher helps with sim time jumps
+transform_tolerance: 0.5  # 🔧 Delay tolerance in TFs (0.1-0.5 OK)
 
-# Update thresholds (when AMCL updates the pose)
-update_min_d: 0.1 # Update only when robot moves 10cm
-update_min_a: 0.2 # Update only when robot rotates 0.2 rad
+# =======================
+# 📌 UPDATE THRESHOLDS
+# =======================
+update_min_d: 0.15        # 🔧 Update when robot moves at least 5 cm
+update_min_a: 0.3         # 🔧 Update when robot rotates 0.1 rad (~5.7°)
+resample_interval: 2      # 🔧 Resample every N updates (1 = every time)
+
+# 🧪 Tune to reduce CPU usage:
+# - Increase update_min_d/a to reduce update frequency (0.1 / 0.2)
+# - Increase resample_interval to 2-3 if map is stable
+
+# =======================
+# 📌 RECOVERY PARAMETERS (OPTIONAL)
+# =======================
+recovery_alpha_slow: 0.001   # If > 0, AMCL slowly builds confidence
+recovery_alpha_fast: 0.05    # If > 0, AMCL rapidly reacts to match
+
+# 🔧 If AMCL takes too long to recover, try:
+# recovery_alpha_slow: 0.001
+# recovery_alpha_fast: 0.1
+
