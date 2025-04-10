@@ -250,15 +250,9 @@ void publish_all()
     ros::Time current_time = ros::Time::now();
 
     geometry_msgs::Twist cmd_vel;
-    if (use_sim) {
-        cmd_vel.linear.y = robot_vel.x;
-        cmd_vel.linear.x = robot_vel.y;
-        cmd_vel.angular.z = robot_vel.theta;
-    } else {
-        cmd_vel.linear.x = robot_vel.x;
-        cmd_vel.linear.y = robot_vel.y;
-        cmd_vel.angular.z = robot_vel.theta;
-    }
+    cmd_vel.linear.y = robot_vel.x;
+    cmd_vel.linear.x = -robot_vel.y;
+    cmd_vel.angular.z = robot_vel.theta;
     pub_cmd_vel.publish(cmd_vel);
 
     geometry_msgs::Pose2D pose_msg;

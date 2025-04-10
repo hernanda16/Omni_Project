@@ -73,9 +73,9 @@ pose_t robot_vel = { 0.0, 0.0, 0.0 }; // vx, vy, omega
 uint16_t robot_state = 0;
 uint8_t controlled_by = 0; // 0: keyboard, 1: joystick
 
-uint8_t use_slam = 1;
+uint8_t use_slam = 0;
 uint8_t use_sim = 0;
-uint8_t use_gmapping = 0;
+uint8_t use_gmapping = 1;
 
 float initial_imu_yaw = 0.0f;
 bool imu_initialized = false;
