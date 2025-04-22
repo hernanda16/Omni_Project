@@ -2,6 +2,7 @@
 #define ROBOT_NODE_HPP
 
 #include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
@@ -62,6 +63,9 @@ float MAX_ANG_ACC = 1.0f; // in rad/s^2
 float Kp = 0.1f;
 float Ki = 0.0f;
 float Kd = 0.0f;
+float Kp_angular = 0.1f;
+float Ki_angular = 0.0f;
+float Kd_angular = 0.0f;
 float tf_lidar2base_x = 0.0f;
 float tf_lidar2base_y = 0.0f;
 float tf_lidar2base_theta = 0.0f;
@@ -75,18 +79,22 @@ uint8_t controlled_by = 0; // 0: keyboard, 1: joystick
 
 uint8_t use_slam = 0;
 uint8_t use_sim = 0;
-uint8_t use_gmapping = 1;
+uint8_t use_gmapping = 0;
 
 float initial_imu_yaw = 0.0f;
 bool imu_initialized = false;
 float initial_pose_theta = 0.0f;
 float last_safe_theta = 0.0f;
 
+pose_t goal_pose;
+
 std::vector<point2d_t> lidar_data;
 
 axis_t axis_left;
 axis_t axis_right;
 button_t buttons;
+
+ros::Time time_control;
 
 // ROS objects
 ros::Timer timer_main;
@@ -95,6 +103,8 @@ ros::Subscriber sub_imu;
 ros::Subscriber sub_lidar;
 ros::Subscriber sub_encoder;
 ros::Subscriber sub_amcl_pose;
+ros::Subscriber sub_goal_pose;
+ros::Subscriber sub_init_pose;
 ros::Publisher pub_cmd_vel;
 ros::Publisher pub_robot_pose;
 ros::Publisher pub_robot_odom;
@@ -112,6 +122,8 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg);
 void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& msg);
 void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg);
 void amcl_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
+void goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+void init_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
 
 void dummy_odom();
 void update_robot_pose();

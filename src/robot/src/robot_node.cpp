@@ -14,6 +14,9 @@ int main(int argc, char** argv)
     Kp = nh.param<float>("kp", 1.0f);
     Ki = nh.param<float>("ki", 0.0f);
     Kd = nh.param<float>("kd", 0.0f);
+    Kp_angular = nh.param<float>("kp_ang", 1.0f);
+    Ki_angular = nh.param<float>("ki_ang", 0.0f);
+    Kd_angular = nh.param<float>("kd_ang", 0.0f);
     tf_lidar2base_x = nh.param<float>("tf_lidar2base_x", 0.0f);
     tf_lidar2base_y = nh.param<float>("tf_lidar2base_y", 0.0f);
     tf_lidar2base_theta = nh.param<float>("tf_lidar2base_theta", 0.0f);
@@ -33,6 +36,9 @@ int main(int argc, char** argv)
     printf("Kp\t\t: %.2f\n", Kp);
     printf("Ki\t\t: %.2f\n", Ki);
     printf("Kd\t\t: %.2f\n", Kd);
+    printf("Kp_ang\t\t: %.2f\n", Kp_angular);
+    printf("Ki_ang\t\t: %.2f\n", Ki_angular);
+    printf("Kd_ang\t\t: %.2f\n", Kd_angular);
     printf("Lidar to Base\t: (%.2f, %.2f, %.2f)\n", tf_lidar2base_x, tf_lidar2base_y, tf_lidar2base_theta);
     printf("======================================\n");
 
@@ -43,6 +49,8 @@ int main(int argc, char** argv)
     sub_lidar = nh.subscribe<sensor_msgs::LaserScan>("/device/lidar/scan", 1, lidar_callback);
     sub_encoder = nh.subscribe<std_msgs::Int32MultiArray>("/device/motor/raw_enc", 1, encoder_callback);
     sub_amcl_pose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, amcl_pose_callback);
+    sub_goal_pose = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, goal_pose_callback);
+    sub_init_pose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, init_pose_callback);
     pub_cmd_vel = nh.advertise<geometry_msgs::Twist>("/robot/cmd_vel", 1);
     pub_robot_pose = nh.advertise<geometry_msgs::Pose2D>("/robot/pose", 1);
     pub_robot_odom = nh.advertise<nav_msgs::Odometry>("/robot/odom", 1);
@@ -63,6 +71,8 @@ void timer_callback(const ros::TimerEvent&)
 
     state_control();
     publish_all();
+
+    time_control = ros::Time::now();
 }
 
 void dummy_odom()
@@ -126,6 +136,15 @@ void keyboard_handler()
         case 'o':
             set_initial_pose(initial_pose.x, initial_pose.y, initial_pose.theta);
             break;
+        case 'z':
+            state = 'z';
+            break;
+        case 'c':
+            state = 'c';
+            break;
+        case 'g':
+            state = 'g';
+            break;
         case 'x':
             controlled_by = JOYSTICK;
             ROS_INFO("Control mode: JOYSTICK");
@@ -156,6 +175,24 @@ void keyboard_handler()
         break;
     case ' ':
         velocity_control(0.0, 0.0, 0.0);
+        break;
+    case 'z':
+        if (position_control(0.0, 1.0, 0.0)) {
+            velocity_control(0.0, 0.0, 0.0);
+            state = ' ';
+        }
+        break;
+    case 'c':
+        if (position_control(robot_pose.x, robot_pose.y, 0.0)) {
+            velocity_control(0.0, 0.0, 0.0);
+            state = ' ';
+        }
+        break;
+    case 'g':
+        if (position_control(goal_pose.x, goal_pose.y, goal_pose.theta)) {
+            velocity_control(0.0, 0.0, 0.0);
+            state = ' ';
+        }
         break;
     default:
         break;
@@ -209,6 +246,24 @@ uint8_t position_control(float x, float y, float theta)
     static float integral_x = 0.0, integral_y = 0.0, integral_theta = 0.0;
     static float prev_error_x = 0.0, prev_error_y = 0.0, prev_error_theta = 0.0;
     static double prev_time = ros::Time::now().toSec();
+    static float prev_x = x;
+    static float prev_y = y;
+    static float prev_theta = theta;
+
+    if (prev_x != x || prev_y != y) {
+        integral_x = 0.0;
+        integral_y = 0.0;
+    }
+
+    if (prev_theta != theta) {
+        integral_theta = 0.0;
+    }
+
+    if (time_control - ros::Time::now() > ros::Duration(0.5)) {
+        integral_x = 0.0;
+        integral_y = 0.0;
+        integral_theta = 0.0;
+    }
 
     float error_x = x - robot_pose.x;
     float error_y = y - robot_pose.y;
@@ -228,7 +283,7 @@ uint8_t position_control(float x, float y, float theta)
 
         float output_x = Kp * error_x + Ki * integral_x + Kd * derivative_x;
         float output_y = Kp * error_y + Ki * integral_y + Kd * derivative_y;
-        float output_theta = Kp * error_theta + Ki * integral_theta + Kd * derivative_theta;
+        float output_theta = (Kp_angular * error_theta + Ki_angular * integral_theta + Kd_angular * derivative_theta) * M_PI / 180.0;
 
         velocity_control(output_x, output_y, output_theta);
 
@@ -237,7 +292,7 @@ uint8_t position_control(float x, float y, float theta)
         prev_error_theta = error_theta;
         prev_time = current_time;
 
-        if (fabs(error_x) < 0.005 && fabs(error_y) < 0.005 && fabs(error_theta) < 0.005) {
+        if (fabs(error_x) < 0.10 && fabs(error_y) < 0.10 && fabs(error_theta) < 5) {
             return 1;
         }
     }
@@ -386,7 +441,7 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
         new_theta += 360.0;
 
     // ! SAFETY BECAUSE OF IMU NOISE !
-    if (fabs(new_theta - last_safe_theta) < 90.0) {
+    if (fabs(new_theta - last_safe_theta) < 20.0) {
         robot_pose.theta = new_theta;
         last_safe_theta = new_theta;
     } else {
@@ -460,4 +515,24 @@ void amcl_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr
     amcl_pose = *msg;
 
     update_robot_pose();
+}
+
+void goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    goal_pose.x = msg->pose.position.x;
+    goal_pose.y = msg->pose.position.y;
+    goal_pose.theta = tf::getYaw(msg->pose.orientation) * 180 / M_PI;
+
+    ROS_INFO("Received goal pose: x=%.2f, y=%.2f, theta=%.2f", goal_pose.x, goal_pose.y, goal_pose.theta);
+}
+
+void init_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg)
+{
+    pose_t set_init;
+    set_init.x = msg->pose.pose.position.x;
+    set_init.y = msg->pose.pose.position.y;
+    set_init.theta = tf::getYaw(msg->pose.pose.orientation) * 180 / M_PI;
+    set_initial_pose(set_init.x, set_init.y, set_init.theta);
+
+    ROS_INFO("Received init pose: x=%.2f, y=%.2f, theta=%.2f", set_init.x, set_init.y, set_init.theta);
 }
