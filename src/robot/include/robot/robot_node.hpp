@@ -28,7 +28,8 @@
 #define DEBUG 2
 
 #define DEG2RAD(deg) ((deg) * M_PI / 180.0)
-#define ENC2CM 0.4483067629
+#define ENC2CM 0.09311709475
+#define ENC2DEG 0.399185185185
 
 typedef struct {
     float x;
@@ -70,6 +71,8 @@ pose_t initial_pose = { 0.0, 0.0, 0.0 };
 
 pose_t robot_pose = { 0.0, 0.0, 0.0 }; // x, y, theta
 pose_t robot_vel = { 0.0, 0.0, 0.0 }; // vx, vy, omega
+pose_t robot_odom = { 0.0, 0.0, 0.0 };
+pose_t robot_odom_dot = { 0.0, 0.0, 0.0 };
 uint16_t robot_state = 0;
 uint8_t controlled_by = 0; // 0: keyboard, 1: joystick
 

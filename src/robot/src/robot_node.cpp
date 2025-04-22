@@ -288,11 +288,11 @@ void publish_all()
         tf_broadcaster->sendTransform(tf::StampedTransform(tf_odom2base, current_time, odom_frame, base_frame));
 
         // ========== base_footprint -> base_link ==========
-        tf::Transform tf_base2link;
-        tf_base2link.setOrigin(tf::Vector3(0.0, 0.0, 0.0));
-        q.setRPY(0, 0, 0);
-        tf_base2link.setRotation(q);
-        tf_broadcaster->sendTransform(tf::StampedTransform(tf_base2link, current_time, base_frame, "base_link"));
+        // tf::Transform tf_base2link;
+        // tf_base2link.setOrigin(tf::Vector3(0.0, 0.0, 0.0));
+        // q.setRPY(0, 0, 0);
+        // tf_base2link.setRotation(q);
+        // tf_broadcaster->sendTransform(tf::StampedTransform(tf_base2link, current_time, base_frame, "base_link"));
 
         // ========== base_link -> base_scan ==========
         tf::Transform tf_link2scan;
@@ -423,14 +423,17 @@ void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 
 void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg)
 {
-    static const float angle[4] = { 45, 135, 225, 315 };
-    int32_t enc_buffer[4] = { msg->data[0], msg->data[1], msg->data[2], msg->data[3] };
+    // Make odometry for giving linear x, y, and angular z based on omni 4 wheel robot encoder
+    int32_t enc_buffer[4] = { -msg->data[0], -msg->data[1], -msg->data[2], -msg->data[3] };
     static int32_t enc_prev_buffer[4] = { enc_buffer[0], enc_buffer[1], enc_buffer[2], enc_buffer[3] };
     static int32_t enc_diff[4] = { 0, 0, 0, 0 };
     static double prev_time = ros::Time::now().toSec();
 
     double current_time = ros::Time::now().toSec();
     double dt = current_time - prev_time;
+
+    static const float angle[4] = { 225, 315, 45, 135 };
+    static const float ROBOT_RADIUS = 17.5; // Distance from the center to the wheels in centimeters
 
     for (int i = 0; i < 4; i++) {
         enc_diff[i] = enc_buffer[i] - enc_prev_buffer[i];
@@ -445,12 +448,41 @@ void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg)
 
     float dx = 0.0, dy = 0.0, dtheta = 0.0;
     for (int i = 0; i < 4; i++) {
-        dx += (float)enc_diff[i] * 0.01 * cosf(angle[i] * M_PI / 180.0) * ENC2CM;
-        dy += (float)enc_diff[i] * 0.01 * sinf(angle[i] * M_PI / 180.0) * ENC2CM;
+        dx += (float)enc_diff[i] * cosf(angle[i] * M_PI / 180.0) * ENC2CM;
+        dy += (float)enc_diff[i] * sinf(angle[i] * M_PI / 180.0) * ENC2CM;
     }
 
-    robot_pose.y += -(dx * cosf(robot_pose.theta * M_PI / 180.0) - dy * sinf(robot_pose.theta * M_PI / 180.0)) * dt;
-    robot_pose.x += (dx * sinf(robot_pose.theta * M_PI / 180.0) + dy * cosf(robot_pose.theta * M_PI / 180.0)) * dt;
+    dx = dx / 4.0;
+    dy = dy / 4.0;
+    dtheta = (float)(enc_diff[0] + enc_diff[1] + enc_diff[2] + enc_diff[3]) * ENC2DEG / (4.0 * ROBOT_RADIUS);
+
+    robot_odom.x += dx;
+    robot_odom.y += dy;
+    robot_odom.theta += dtheta;
+
+    printf("odom: %.2f %.2f %.2f\n", robot_odom.x, robot_odom.y, robot_odom.theta);
+
+    nav_msgs::Odometry odom_msgs;
+    odom_msgs.header.stamp = ros::Time::now();
+    odom_msgs.header.frame_id = "odom";
+    odom_msgs.child_frame_id = "base_link";
+
+    odom_msgs.pose.pose.position.x = robot_odom.x * 0.01; // Convert to meters
+    odom_msgs.pose.pose.position.y = robot_odom.y * 0.01; // Convert to meters
+    odom_msgs.pose.pose.position.z = 0.0;
+
+    tf::Quaternion q;
+    q.setRPY(0, 0, DEG2RAD(robot_odom.theta));
+    odom_msgs.pose.pose.orientation.x = q.x();
+    odom_msgs.pose.pose.orientation.y = q.y();
+    odom_msgs.pose.pose.orientation.z = q.z();
+    odom_msgs.pose.pose.orientation.w = q.w();
+
+    odom_msgs.twist.twist.linear.x = dx / dt * 0.01; // Convert to meters per second
+    odom_msgs.twist.twist.linear.y = dy / dt * 0.01; // Convert to meters per second
+    odom_msgs.twist.twist.angular.z = DEG2RAD(dtheta / dt);
+
+    pub_robot_odom.publish(odom_msgs);
 
     prev_time = current_time;
 }

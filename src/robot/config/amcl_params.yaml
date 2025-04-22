@@ -51,7 +51,7 @@ initial_pose_a: 0.0        # 🔧 Initial heading (radians, NOT degrees)
 # 📌 FRAME IDs (SET FROM CODE OR LAUNCH)
 # =======================
 # These should be set based on your flags (see launch tip below)
-base_frame_id: "base_footprint"   # Real robot: "base_footprint"
+base_frame_id: "base_link"   # Real robot: "base_footprint"
 odom_frame_id: "odom"             # Real robot: "odom"
 global_frame_id: "map"            # Static global frame
 
