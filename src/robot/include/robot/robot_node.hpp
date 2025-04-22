@@ -76,6 +76,9 @@ float MAX_ANG_ACC = 1.0f; // in rad/s^2
 float Kp = 0.1f;
 float Ki = 0.0f;
 float Kd = 0.0f;
+float Kp_angular = 0.1f;
+float Ki_angular = 0.0f;
+float Kd_angular = 0.0f;
 float tf_lidar2base_x = 0.0f;
 float tf_lidar2base_y = 0.0f;
 float tf_lidar2base_theta = 0.0f;
@@ -91,12 +94,14 @@ uint8_t controlled_by = 0; // 0: keyboard, 1: joystick
 
 uint8_t use_slam = 0;
 uint8_t use_sim = 0;
-uint8_t use_gmapping = 1;
+uint8_t use_gmapping = 0;
 
 float initial_imu_yaw = 0.0f;
 bool imu_initialized = false;
 float initial_pose_theta = 0.0f;
 float last_safe_theta = 0.0f;
+
+pose_t goal_pose;
 
 std::vector<point2d_t> lidar_data;
 
@@ -161,7 +166,10 @@ extern std::string laser_frame_id;
 extern std::string imu_frame_id;
 >>>>>>> cbd22fdedd92d6f3749e3802b376c25bd23648dc
 
+ros::Time time_control;
+
 // ROS objects
+<<<<<<< HEAD
 extern ros::Timer timer_main;
 extern ros::Subscriber sub_joy;
 extern ros::Subscriber sub_imu;
@@ -189,6 +197,27 @@ extern sensor_msgs::Imu imu_msg;
 extern nav_msgs::Path path_msg;
 
 // Timer callback
+=======
+ros::Timer timer_main;
+ros::Subscriber sub_joy;
+ros::Subscriber sub_imu;
+ros::Subscriber sub_lidar;
+ros::Subscriber sub_encoder;
+ros::Subscriber sub_amcl_pose;
+ros::Subscriber sub_goal_pose;
+ros::Subscriber sub_init_pose;
+ros::Publisher pub_cmd_vel;
+ros::Publisher pub_robot_pose;
+ros::Publisher pub_robot_odom;
+ros::Publisher pub_marker;
+
+tf::TransformBroadcaster* tf_broadcaster;
+tf::TransformListener* tf_listener;
+
+geometry_msgs::PoseWithCovarianceStamped amcl_pose;
+
+// Function prototypes
+>>>>>>> 8a04e197ce205f4bd173596cf633669370180b3a
 void timer_callback(const ros::TimerEvent&);
 
 // Subscriber callbacks
@@ -197,9 +226,14 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg);
 void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& msg);
 void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg);
 void amcl_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
+<<<<<<< HEAD
 void odom_filtered_callback(const nav_msgs::Odometry::ConstPtr& msg);
 void initialpose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
 void goal_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+=======
+void goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+void init_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
+>>>>>>> 8a04e197ce205f4bd173596cf633669370180b3a
 
 // Robot pose management
 void update_robot_pose();

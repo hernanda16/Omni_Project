@@ -82,6 +82,7 @@ nav_msgs::Path path_msg;
 
 int8_t kbhit()
 {
+<<<<<<< HEAD
     static const int STDIN = 0;
     static bool initialized = false;
     static struct termios initial_settings, new_settings;
@@ -97,6 +98,65 @@ int8_t kbhit()
         tcsetattr(STDIN, TCSANOW, &new_settings);
         initialized = true;
     }
+=======
+    ros::init(argc, argv, "robot_node");
+    ros::NodeHandle nh;
+    ros::MultiThreadedSpinner spinner(0);
+
+    // Get parameters from the parameter server
+    MAX_LIN_VEL = nh.param<float>("max_lin_vel", 0.5f);
+    MAX_ANG_VEL = nh.param<float>("max_ang_vel", 0.2f);
+    MAX_LIN_ACC = nh.param<float>("max_lin_acc", 0.2f);
+    MAX_ANG_ACC = nh.param<float>("max_ang_acc", 0.1f);
+    Kp = nh.param<float>("kp", 1.0f);
+    Ki = nh.param<float>("ki", 0.0f);
+    Kd = nh.param<float>("kd", 0.0f);
+    Kp_angular = nh.param<float>("kp_ang", 1.0f);
+    Ki_angular = nh.param<float>("ki_ang", 0.0f);
+    Kd_angular = nh.param<float>("kd_ang", 0.0f);
+    tf_lidar2base_x = nh.param<float>("tf_lidar2base_x", 0.0f);
+    tf_lidar2base_y = nh.param<float>("tf_lidar2base_y", 0.0f);
+    tf_lidar2base_theta = nh.param<float>("tf_lidar2base_theta", 0.0f);
+
+    initial_pose.x = nh.param<float>("initial_pose_x", 0.0f);
+    initial_pose.y = nh.param<float>("initial_pose_y", 0.0f);
+    initial_pose.theta = nh.param<float>("initial_pose_theta", 0.0f);
+
+    printf("======================================\n");
+    printf("        ROBOT NODE PARAMETERS         \n");
+    printf("======================================\n");
+    printf("Initial Pose\t: (%.2f, %.2f, %.2f)\n", initial_pose.x, initial_pose.y, initial_pose.theta);
+    printf("MAX_LIN_VEL\t: %.2f\n", MAX_LIN_VEL);
+    printf("MAX_ANG_VEL\t: %.2f\n", MAX_ANG_VEL);
+    printf("MAX_LIN_ACC\t: %.2f\n", MAX_LIN_ACC);
+    printf("MAX_ANG_ACC\t: %.2f\n", MAX_ANG_ACC);
+    printf("Kp\t\t: %.2f\n", Kp);
+    printf("Ki\t\t: %.2f\n", Ki);
+    printf("Kd\t\t: %.2f\n", Kd);
+    printf("Kp_ang\t\t: %.2f\n", Kp_angular);
+    printf("Ki_ang\t\t: %.2f\n", Ki_angular);
+    printf("Kd_ang\t\t: %.2f\n", Kd_angular);
+    printf("Lidar to Base\t: (%.2f, %.2f, %.2f)\n", tf_lidar2base_x, tf_lidar2base_y, tf_lidar2base_theta);
+    printf("======================================\n");
+
+    set_initial_pose(initial_pose.x, initial_pose.y, initial_pose.theta);
+
+    sub_joy = nh.subscribe<sensor_msgs::Joy>("/device/joy", 1, joy_callback);
+    sub_imu = nh.subscribe<sensor_msgs::Imu>("/device/imu/data", 1, imu_callback);
+    sub_lidar = nh.subscribe<sensor_msgs::LaserScan>("/device/lidar/scan", 1, lidar_callback);
+    sub_encoder = nh.subscribe<std_msgs::Int32MultiArray>("/device/motor/raw_enc", 1, encoder_callback);
+    sub_amcl_pose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, amcl_pose_callback);
+    sub_goal_pose = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, goal_pose_callback);
+    sub_init_pose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, init_pose_callback);
+    pub_cmd_vel = nh.advertise<geometry_msgs::Twist>("/robot/cmd_vel", 1);
+    pub_robot_pose = nh.advertise<geometry_msgs::Pose2D>("/robot/pose", 1);
+    pub_robot_odom = nh.advertise<nav_msgs::Odometry>("/robot/odom", 1);
+    pub_marker = nh.advertise<visualization_msgs::Marker>("/robot/marker", 1);
+    timer_main = nh.createTimer(ros::Duration(0.01), timer_callback);
+
+    tf_broadcaster = new tf::TransformBroadcaster;
+    tf_listener = new tf::TransformListener;
+>>>>>>> 8a04e197ce205f4bd173596cf633669370180b3a
 
     int bytesWaiting;
     ioctl(STDIN, FIONREAD, &bytesWaiting);
@@ -105,9 +165,20 @@ int8_t kbhit()
 
 void set_initial_pose(float x, float y, float theta)
 {
+<<<<<<< HEAD
     robot_pose.x = x;
     robot_pose.y = y;
     robot_pose.theta = theta;
+=======
+    if (use_sim)
+        dummy_odom();
+
+    state_control();
+    publish_all();
+
+    time_control = ros::Time::now();
+}
+>>>>>>> 8a04e197ce205f4bd173596cf633669370180b3a
 
     robot_vel.x = 0.0f;
     robot_vel.y = 0.0f;
@@ -135,12 +206,104 @@ void initialpose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstP
 
 void goal_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
+<<<<<<< HEAD
     target_pose.x = msg->pose.position.x * 100.0f; // Convert from meters to cm
     target_pose.y = msg->pose.position.y * 100.0f; // Convert from meters to cm
     target_pose.theta = tf::getYaw(msg->pose.orientation) * 180.0f / M_PI; // Convert from radians to degrees
 
     have_target = true;
     ROS_INFO("New goal received: (%.2f, %.2f, %.2f)", target_pose.x, target_pose.y, target_pose.theta);
+=======
+    static uint16_t state = 0;
+    if (kbhit()) {
+        char c = getchar();
+        switch (c) {
+        case 'w':
+            state = 'w';
+            break;
+        case 's':
+            state = 's';
+            break;
+        case 'a':
+            state = 'a';
+            break;
+        case 'd':
+            state = 'd';
+            break;
+        case 'q':
+            state = 'q';
+            break;
+        case 'e':
+            state = 'e';
+            break;
+        case ' ':
+            state = ' ';
+            break;
+        case 'o':
+            set_initial_pose(initial_pose.x, initial_pose.y, initial_pose.theta);
+            break;
+        case 'z':
+            state = 'z';
+            break;
+        case 'c':
+            state = 'c';
+            break;
+        case 'g':
+            state = 'g';
+            break;
+        case 'x':
+            controlled_by = JOYSTICK;
+            ROS_INFO("Control mode: JOYSTICK");
+            break;
+        default:
+            break;
+        }
+    }
+
+    switch (state) {
+    case 'w':
+        velocity_control(0.0, MAX_LIN_VEL, 0.0);
+        break;
+    case 's':
+        velocity_control(0.0, -MAX_LIN_VEL, 0.0);
+        break;
+    case 'a':
+        velocity_control(-MAX_LIN_VEL, 0.0, 0.0);
+        break;
+    case 'd':
+        velocity_control(MAX_LIN_VEL, 0.0, 0.0);
+        break;
+    case 'q':
+        velocity_control(0.0, 0.0, MAX_ANG_VEL);
+        break;
+    case 'e':
+        velocity_control(0.0, 0.0, -MAX_ANG_VEL);
+        break;
+    case ' ':
+        velocity_control(0.0, 0.0, 0.0);
+        break;
+    case 'z':
+        if (position_control(0.0, 1.0, 0.0)) {
+            velocity_control(0.0, 0.0, 0.0);
+            state = ' ';
+        }
+        break;
+    case 'c':
+        if (position_control(robot_pose.x, robot_pose.y, 0.0)) {
+            velocity_control(0.0, 0.0, 0.0);
+            state = ' ';
+        }
+        break;
+    case 'g':
+        if (position_control(goal_pose.x, goal_pose.y, goal_pose.theta)) {
+            velocity_control(0.0, 0.0, 0.0);
+            state = ' ';
+        }
+        break;
+    default:
+        break;
+    }
+>>>>>>> 8a04e197ce205f4bd173596cf633669370180b3a
 }
 
 void odom_filtered_callback(const nav_msgs::Odometry::ConstPtr& msg)
@@ -195,6 +358,7 @@ void publish_tf()
 
 void publish_visualization()
 {
+<<<<<<< HEAD
     ros::Time current_time = ros::Time::now();
     visualization_msgs::Marker marker_msg;
 
@@ -229,6 +393,49 @@ void publish_visualization()
     }
 
     pub_marker.publish(marker_msg);
+=======
+    static float integral_x = 0.0, integral_y = 0.0, integral_theta = 0.0;
+    static float prev_error_x = 0.0, prev_error_y = 0.0, prev_error_theta = 0.0;
+    static double prev_time = ros::Time::now().toSec();
+    static float prev_x = x;
+    static float prev_y = y;
+    static float prev_theta = theta;
+
+    if (prev_x != x || prev_y != y) {
+        integral_x = 0.0;
+        integral_y = 0.0;
+    }
+
+    if (prev_theta != theta) {
+        integral_theta = 0.0;
+    }
+
+    if (time_control - ros::Time::now() > ros::Duration(0.5)) {
+        integral_x = 0.0;
+        integral_y = 0.0;
+        integral_theta = 0.0;
+    }
+
+    float error_x = x - robot_pose.x;
+    float error_y = y - robot_pose.y;
+    float error_theta = theta - robot_pose.theta;
+
+    double current_time = ros::Time::now().toSec();
+    double dt = current_time - prev_time;
+
+    if (dt > 0.0) {
+        integral_x += error_x * dt;
+        integral_y += error_y * dt;
+        integral_theta += error_theta * dt;
+
+        float derivative_x = (error_x - prev_error_x) / dt;
+        float derivative_y = (error_y - prev_error_y) / dt;
+        float derivative_theta = (error_theta - prev_error_theta) / dt;
+
+        float output_x = Kp * error_x + Ki * integral_x + Kd * derivative_x;
+        float output_y = Kp * error_y + Ki * integral_y + Kd * derivative_y;
+        float output_theta = (Kp_angular * error_theta + Ki_angular * integral_theta + Kd_angular * derivative_theta) * M_PI / 180.0;
+>>>>>>> 8a04e197ce205f4bd173596cf633669370180b3a
 
     // Path visualization
     static tf::TransformListener listener;
@@ -239,6 +446,7 @@ void publish_visualization()
         first_path_point = false;
     }
 
+<<<<<<< HEAD
     geometry_msgs::PoseStamped pose_stamped;
     pose_stamped.header.stamp = current_time;
     pose_stamped.header.frame_id = base_frame_id;
@@ -256,6 +464,10 @@ void publish_visualization()
         // Limit path size to prevent memory growth
         if (path_msg.poses.size() > 1000) {
             path_msg.poses.erase(path_msg.poses.begin());
+=======
+        if (fabs(error_x) < 0.10 && fabs(error_y) < 0.10 && fabs(error_theta) < 5) {
+            return 1;
+>>>>>>> 8a04e197ce205f4bd173596cf633669370180b3a
         }
 
         pub_path.publish(path_msg);
@@ -364,10 +576,36 @@ void publish_all()
 
     pub_robot_odom.publish(odom_msgs);
 
+<<<<<<< HEAD
     // Publish TF and visualization at reduced rate to save CPU
     if (counter++ % 3 == 0) {
         publish_tf();
         publish_visualization();
+=======
+    float delta_imu = imu_yaw_deg - initial_imu_yaw;
+
+    // Wrap to [-180, 180]
+    if (delta_imu > 180.0)
+        delta_imu -= 360.0;
+    if (delta_imu < -180.0)
+        delta_imu += 360.0;
+
+    float new_theta = initial_pose_theta + delta_imu;
+
+    // Wrap again
+    if (new_theta > 180.0)
+        new_theta -= 360.0;
+    if (new_theta < -180.0)
+        new_theta += 360.0;
+
+    // ! SAFETY BECAUSE OF IMU NOISE !
+    if (fabs(new_theta - last_safe_theta) < 20.0) {
+        robot_pose.theta = new_theta;
+        last_safe_theta = new_theta;
+    } else {
+        // Spike detected: ignore this update
+        ROS_WARN_THROTTLE(1.0, "IMU spike detected: ignoring rotation jump");
+>>>>>>> 8a04e197ce205f4bd173596cf633669370180b3a
     }
 }
 
@@ -437,6 +675,7 @@ int main(int argc, char** argv)
     odom_msgs.pose.pose.position.y = robot_odom.y * 0.01; // Convert to meters
     odom_msgs.pose.pose.position.z = 0.0;
 
+<<<<<<< HEAD
     tf::Quaternion q;
     q.setRPY(0, 0, DEG2RAD(robot_odom.theta));
     odom_msgs.pose.pose.orientation.x = q.x();
@@ -560,4 +799,27 @@ int main(int argc, char** argv)
     delete tf_listener;
 
     return 0;
+=======
+    update_robot_pose();
+}
+
+void goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    goal_pose.x = msg->pose.position.x;
+    goal_pose.y = msg->pose.position.y;
+    goal_pose.theta = tf::getYaw(msg->pose.orientation) * 180 / M_PI;
+
+    ROS_INFO("Received goal pose: x=%.2f, y=%.2f, theta=%.2f", goal_pose.x, goal_pose.y, goal_pose.theta);
+}
+
+void init_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg)
+{
+    pose_t set_init;
+    set_init.x = msg->pose.pose.position.x;
+    set_init.y = msg->pose.pose.position.y;
+    set_init.theta = tf::getYaw(msg->pose.pose.orientation) * 180 / M_PI;
+    set_initial_pose(set_init.x, set_init.y, set_init.theta);
+
+    ROS_INFO("Received init pose: x=%.2f, y=%.2f, theta=%.2f", set_init.x, set_init.y, set_init.theta);
+>>>>>>> 8a04e197ce205f4bd173596cf633669370180b3a
 }
