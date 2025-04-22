@@ -9,7 +9,7 @@
     
     <!-- TF Frame Remaps -->
     <param name="odom_frame_id" value="odom"/>
-    <param name="base_frame_id" value="base_footprint"/>
+    <param name="base_frame_id" value="base_link"/>
     <param name="global_frame_id" value="map"/>
 
     <!-- Sensor Input -->

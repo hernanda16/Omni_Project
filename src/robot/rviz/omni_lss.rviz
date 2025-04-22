@@ -8,9 +8,9 @@ Panels:
         - /Status1
         - /Marker1
         - /Marker1/Namespaces1
+        - /Odometry1
         - /Odometry1/Shape1
         - /TF1
-        - /TF1/Status1
       Splitter Ratio: 0.5
     Tree Height: 833
   - Class: rviz/Selection
@@ -96,7 +96,7 @@ Visualization Manager:
         Shaft Length: 0.20000000298023224
         Shaft Radius: 0.05000000074505806
         Value: Arrow
-      Topic: /robot/odom
+      Topic: /odometry/filtered
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -146,17 +146,15 @@ Visualization Manager:
         All Enabled: true
         base_footprint:
           Value: true
-        base_footprint_fake:
-          Value: true
         base_link:
           Value: true
-        base_scan:
+        imu:
+          Value: true
+        laser:
           Value: true
         map:
           Value: true
         odom:
-          Value: true
-        odom_fake:
           Value: true
       Marker Alpha: 1
       Marker Scale: 1
@@ -166,14 +164,14 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          odom_fake:
-            base_footprint_fake:
-              base_link:
-                base_scan:
-                  {}
-        odom:
-          base_footprint:
-            {}
+          odom:
+            base_footprint:
+              {}
+            base_link:
+              imu:
+                {}
+              laser:
+                {}
       Update Interval: 0
       Value: true
   Enabled: true
