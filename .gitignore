@@ -1,3 +1,5 @@
 .vscode
 build
 devel
+libraries
+nexus_robo
