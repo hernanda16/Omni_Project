@@ -6,7 +6,11 @@ publish_tf: true # odom -> base_link
 
 map_frame: map
 odom_frame: odom
+<<<<<<< HEAD
 base_link_frame: base_link
+=======
+base_link_frame: base_footprint
+>>>>>>> cbd22fdedd92d6f3749e3802b376c25bd23648dc
 world_frame: odom # for amcl world_frame: map otherwise odom
 
 odom0: /robot/odom
@@ -17,13 +21,21 @@ odom0_config: [true, true, false,
                 false, false, false]
 odom0_differential: true
 
+<<<<<<< HEAD
 imu0: /device/imu/data
+=======
+imu0: /robot/imu/
+>>>>>>> cbd22fdedd92d6f3749e3802b376c25bd23648dc
 imu0_config: [false, false, false,
                 false, false, true,
                 false, false, false,
                 false, false, false,
                 true, true, true]
+<<<<<<< HEAD
 imu0_differential: false
+=======
+imu0_differential: true
+>>>>>>> cbd22fdedd92d6f3749e3802b376c25bd23648dc
 
 # pose0: /amcl_pose
 # pose0_config: [true, true, false,
