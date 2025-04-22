@@ -1,0 +1,1 @@
+roslaunch robot start_rviz.launch
