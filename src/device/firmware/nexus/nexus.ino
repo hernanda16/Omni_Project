@@ -29,7 +29,7 @@
 
 
 // Mechanical Parameters
-const float WHEEL_RADIUS = 0.05;     // meters (jari-jari roda)
+const float WHEEL_RADIUS = 0.05;     // meters (jari-jari roda)`
 const float ROBOT_RADIUS = 0.2;      // meters from center to wheel (jarak antar roda)
 
 // Encoder Variables
@@ -39,6 +39,7 @@ int32_t buffEnc[4] = {0, 0, 0, 0};
 int32_t counts_per_period[4];
 float vel_fb[4];      // Feedback velocity in rad/s
 float vel_set[4];     // Setpoint velocity in rad/s
+float stop[4] = {0, 0, 0, 0}; // Stop command
 
 // PID Parameters
 float kp = 18;   // Proportional gain
@@ -149,6 +150,16 @@ void loop() {
       vel_fb[i] = ((float)counts_per_period[i] / COUNTS_PER_REV) * (2 * M_PI) * LOOP_FREQUENCY;
       prev_encTicks[i] = encTicks[i];
     }
+    // Serial.print("buffEnc[0]: ");
+    // Serial.print(buffEnc[0]);
+    // Serial.print("\tbuffEnc[1]: ");
+    // Serial.print(buffEnc[1]);
+    // Serial.print("\tbuffEnc[2]: ");
+    // Serial.print(buffEnc[2]);
+    // Serial.print("\tbuffEnc[3]: ");
+    // Serial.println(buffEnc[3]);
+
+    
 
     // Kirim data feedback ke serial
     uint8_t serial_send[32] = {'e', 'l', 'k', 'a'};
@@ -160,8 +171,24 @@ void loop() {
 
     // Jalankan PID untuk mengontrol motor
     Serial.println(linx);
-    kinematics(linx, liny, angz);
-    pidMotor(vel_set);
+    if((linx < 0.03 && linx > -0.03) && (liny < 0.03 && liny > -0.03) && (angz < 0.03 && angz > -0.03))
+    {
+      setMotorPwm(stop);
+    }
+    else
+    {
+      kinematics(linx, liny, angz);
+      pidMotor(vel_set);
+    }
+    // kinematics(0.0, 0.0, 0.0);
+    // pidMotor(vel_set);
+    // pidMotor(stop);
+    // float _pwm[4];
+    // _pwm[0] = 0;
+    // _pwm[1] = 0;
+    // _pwm[2] = 0;
+    // _pwm[3] = 0;
+    // setMotorPwm(_pwm);
   }
 }
 
@@ -233,10 +260,10 @@ void setMotorPwm(float pwm[4]) {
      
   // Analog write secara manual untuk setiap motor
   //if abs pwm < 10 write 0 else write the real value
-  analogWrite(M0_PWM_PIN, abs(pwm[0]) < 10 ? 0 : abs(pwm[0]));
-  analogWrite(M1_PWM_PIN, abs(pwm[1]) < 10 ? 0 : abs(pwm[1]));
-  analogWrite(M2_PWM_PIN, abs(pwm[2]) < 10 ? 0 : abs(pwm[2]));
-  analogWrite(M3_PWM_PIN, abs(pwm[3]) < 10 ? 0 : abs(pwm[3]));
+  analogWrite(M0_PWM_PIN, abs(pwm[0]) < 15 ? 0 : abs(pwm[0]));
+  analogWrite(M1_PWM_PIN, abs(pwm[1]) < 15 ? 0 : abs(pwm[1]));
+  analogWrite(M2_PWM_PIN, abs(pwm[2]) < 15 ? 0 : abs(pwm[2]));
+  analogWrite(M3_PWM_PIN, abs(pwm[3]) < 15 ? 0 : abs(pwm[3]));
 
   // analogWrite(M0_PWM_PIN, abs(pwm[0]));
   // analogWrite(M1_PWM_PIN, abs(pwm[1]));
