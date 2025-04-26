@@ -74,12 +74,16 @@ pose_t initial_pose = { 0.0, 0.0, 0.0 };
 
 pose_t robot_pose = { 0.0, 0.0, 0.0 }; // x, y, theta
 pose_t robot_vel = { 0.0, 0.0, 0.0 }; // vx, vy, omega
+pose_t dwa_vel = { 0.0, 0.0, 0.0 }; // vx, vy, omega
 uint16_t robot_state = 0;
 uint8_t controlled_by = 0; // 0: keyboard, 1: joystick
 
-uint8_t use_slam = 0;
+int16_t keyboard_state = 0;
+
+uint8_t use_slam = 1;
 uint8_t use_sim = 0;
 uint8_t use_gmapping = 0;
+uint8_t use_dwa = 0;
 
 float initial_imu_yaw = 0.0f;
 bool imu_initialized = false;
@@ -105,6 +109,7 @@ ros::Subscriber sub_encoder;
 ros::Subscriber sub_amcl_pose;
 ros::Subscriber sub_goal_pose;
 ros::Subscriber sub_init_pose;
+ros::Subscriber sub_cmd_vel;
 ros::Publisher pub_cmd_vel;
 ros::Publisher pub_robot_pose;
 ros::Publisher pub_robot_odom;
@@ -124,10 +129,12 @@ void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg);
 void amcl_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
 void goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
 void init_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
+void cmd_vel_callback(const geometry_msgs::Twist::ConstPtr& msg);
 
 void dummy_odom();
 void update_robot_pose();
 float compute_amcl_trust();
+void keyboard_input();
 void keyboard_handler();
 void joystick_handler();
 void state_control();

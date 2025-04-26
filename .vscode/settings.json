@@ -83,6 +83,7 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "*.ipp": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "format": "cpp"
     }
 }

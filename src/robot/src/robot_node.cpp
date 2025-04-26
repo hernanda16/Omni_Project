@@ -51,6 +51,7 @@ int main(int argc, char** argv)
     sub_amcl_pose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, amcl_pose_callback);
     sub_goal_pose = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, goal_pose_callback);
     sub_init_pose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, init_pose_callback);
+    sub_cmd_vel = nh.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, cmd_vel_callback);
     pub_cmd_vel = nh.advertise<geometry_msgs::Twist>("/robot/cmd_vel", 1);
     pub_robot_pose = nh.advertise<geometry_msgs::Pose2D>("/robot/pose", 1);
     pub_robot_odom = nh.advertise<nav_msgs::Odometry>("/robot/odom", 1);
@@ -68,6 +69,8 @@ void timer_callback(const ros::TimerEvent&)
 {
     if (use_sim)
         dummy_odom();
+
+    keyboard_input();
 
     state_control();
     publish_all();
@@ -106,55 +109,63 @@ float compute_amcl_trust()
     return std::max(0.1f, std::min(0.9f, trust)); // Keep trust between 0.1 and 0.9
 }
 
-void keyboard_handler()
+void keyboard_input()
 {
-    static uint16_t state = 0;
     if (kbhit()) {
         char c = getchar();
         switch (c) {
         case 'w':
-            state = 'w';
+            keyboard_state = 'w';
             break;
         case 's':
-            state = 's';
+            keyboard_state = 's';
             break;
         case 'a':
-            state = 'a';
+            keyboard_state = 'a';
             break;
         case 'd':
-            state = 'd';
+            keyboard_state = 'd';
             break;
         case 'q':
-            state = 'q';
+            keyboard_state = 'q';
             break;
         case 'e':
-            state = 'e';
+            keyboard_state = 'e';
             break;
         case ' ':
-            state = ' ';
+            keyboard_state = ' ';
+            use_dwa = 0;
             break;
         case 'o':
             set_initial_pose(initial_pose.x, initial_pose.y, initial_pose.theta);
             break;
         case 'z':
-            state = 'z';
+            keyboard_state = 'z';
             break;
         case 'c':
-            state = 'c';
+            keyboard_state = 'c';
             break;
         case 'g':
-            state = 'g';
+            keyboard_state = 'g';
             break;
         case 'x':
-            controlled_by = JOYSTICK;
-            ROS_INFO("Control mode: JOYSTICK");
+            controlled_by = !controlled_by;
+            if (controlled_by)
+                ROS_INFO("Control mode: JOYSTICK");
+            else
+                ROS_INFO("Control mode: KEYBOARD");
+            break;
+        case 'v':
+            use_dwa = 1;
             break;
         default:
             break;
         }
     }
-
-    switch (state) {
+}
+void keyboard_handler()
+{
+    switch (keyboard_state) {
     case 'w':
         velocity_control(0.0, MAX_LIN_VEL, 0.0);
         break;
@@ -179,19 +190,19 @@ void keyboard_handler()
     case 'z':
         if (position_control(0.0, 1.0, 0.0)) {
             velocity_control(0.0, 0.0, 0.0);
-            state = ' ';
+            keyboard_state = ' ';
         }
         break;
     case 'c':
         if (position_control(robot_pose.x, robot_pose.y, 0.0)) {
             velocity_control(0.0, 0.0, 0.0);
-            state = ' ';
+            keyboard_state = ' ';
         }
         break;
     case 'g':
         if (position_control(goal_pose.x, goal_pose.y, goal_pose.theta)) {
             velocity_control(0.0, 0.0, 0.0);
-            state = ' ';
+            keyboard_state = ' ';
         }
         break;
     default:
@@ -304,19 +315,25 @@ void publish_all()
     static uint8_t counter = 0;
     ros::Time current_time = ros::Time::now();
 
-    geometry_msgs::Twist cmd_vel;
-    cmd_vel.linear.y = robot_vel.x;
-    cmd_vel.linear.x = -robot_vel.y;
-    cmd_vel.angular.z = robot_vel.theta;
-    pub_cmd_vel.publish(cmd_vel);
-
-    geometry_msgs::Pose2D pose_msg;
-    pose_msg.x = robot_pose.x;
-    pose_msg.y = robot_pose.y;
-    pose_msg.theta = robot_pose.theta;
-    pub_robot_pose.publish(pose_msg);
-
     if (counter++ % 3 == 0) {
+        geometry_msgs::Twist cmd_vel;
+        if (use_dwa) {
+            cmd_vel.linear.y = dwa_vel.y;
+            cmd_vel.linear.x = dwa_vel.x;
+            cmd_vel.angular.z = dwa_vel.theta;
+        } else {
+            cmd_vel.linear.y = robot_vel.y;
+            cmd_vel.linear.x = robot_vel.x;
+            cmd_vel.angular.z = robot_vel.theta;
+        }
+        pub_cmd_vel.publish(cmd_vel);
+
+        geometry_msgs::Pose2D pose_msg;
+        pose_msg.x = robot_pose.x;
+        pose_msg.y = robot_pose.y;
+        pose_msg.theta = robot_pose.theta;
+        pub_robot_pose.publish(pose_msg);
+
         std::string map_frame = "map";
         std::string odom_frame = use_sim ? "odom_fake" : "odom";
         std::string base_frame = use_sim ? "base_footprint_fake" : "base_footprint";
@@ -335,6 +352,25 @@ void publish_all()
             tf_map2odom.setRotation(q);
             tf_broadcaster->sendTransform(tf::StampedTransform(tf_map2odom, current_time, map_frame, odom_frame));
         }
+
+        // ========== Publish /robot/odom ==========
+        nav_msgs::Odometry odom_msg;
+        odom_msg.header.stamp = current_time;
+        odom_msg.header.frame_id = odom_frame; // "odom" or "odom_fake"
+        odom_msg.child_frame_id = base_frame; // "base_footprint" or "base_footprint_fake"
+
+        // Position
+        odom_msg.pose.pose.position.x = robot_pose.x;
+        odom_msg.pose.pose.position.y = robot_pose.y;
+        odom_msg.pose.pose.position.z = 0.0;
+        odom_msg.pose.pose.orientation = tf::createQuaternionMsgFromYaw(DEG2RAD(robot_pose.theta));
+
+        // Velocity
+        odom_msg.twist.twist.linear.x = robot_vel.x;
+        odom_msg.twist.twist.linear.y = robot_vel.y;
+        odom_msg.twist.twist.angular.z = robot_vel.theta;
+
+        pub_robot_odom.publish(odom_msg); // <<< make sure you have a publisher ready
 
         // ========== odom -> base_footprint ==========
         tf::Transform tf_odom2base;
@@ -403,12 +439,19 @@ void joy_callback(const sensor_msgs::Joy::ConstPtr& msg)
     buttons.triangle = msg->buttons[3];
 
     if (buttons.x == 1) {
-        controlled_by = KEYBOARD;
-        ROS_INFO("Control mode: KEYBOARD");
+        controlled_by = !controlled_by;
+        if (controlled_by)
+            ROS_INFO("Control mode: JOYSTICK");
+        else
+            ROS_INFO("Control mode: KEYBOARD");
     }
 
     if (buttons.o == 1) {
         set_initial_pose(initial_pose.x, initial_pose.y, initial_pose.theta);
+    }
+
+    if (buttons.triangle == 1) {
+        use_dwa = 1;
     }
 
     // printf("left: (x: %.2f, y: %.2f), right: (x: %.2f, y: %.2f)\n", axis_left.x, axis_left.y, axis_right.x, axis_right.y);
@@ -535,4 +578,30 @@ void init_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr
     set_initial_pose(set_init.x, set_init.y, set_init.theta);
 
     ROS_INFO("Received init pose: x=%.2f, y=%.2f, theta=%.2f", set_init.x, set_init.y, set_init.theta);
+}
+
+void cmd_vel_callback(const geometry_msgs::Twist::ConstPtr& msg)
+{
+    // Rotate the velocity by 90 degrees
+    float rotated_x = -msg->linear.y;
+    float rotated_y = msg->linear.x;
+
+    dwa_vel.x = rotated_x;
+    dwa_vel.y = rotated_y;
+    dwa_vel.theta = msg->angular.z * 180 / M_PI;
+
+    if (dwa_vel.x > MAX_LIN_VEL)
+        dwa_vel.x = MAX_LIN_VEL;
+    if (dwa_vel.x < -MAX_LIN_VEL)
+        dwa_vel.x = -MAX_LIN_VEL;
+
+    if (dwa_vel.y > MAX_LIN_VEL)
+        dwa_vel.y = MAX_LIN_VEL;
+    if (dwa_vel.y < -MAX_LIN_VEL)
+        dwa_vel.y = -MAX_LIN_VEL;
+
+    if (dwa_vel.theta > MAX_ANG_VEL)
+        dwa_vel.theta = MAX_ANG_VEL;
+    if (dwa_vel.theta < -MAX_ANG_VEL)
+        dwa_vel.theta = -MAX_ANG_VEL;
 }

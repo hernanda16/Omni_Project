@@ -40,6 +40,20 @@
         <param name="USE_FOOTPRINT" value="$(arg use_footprint)"/>
         <param name="USE_PATH_COST" value="$(arg use_path_cost)"/>
         <param name="USE_SCAN_AS_INPUT" value="$(arg use_scan_as_input)"/>
+<<<<<<< HEAD
+=======
+
+        <!-- <param name="MAX_ACCELERATION" value="3.0"/>
+        <param name="MAX_DECELERATION" value="3.0"/>
+        <param name="MAX_D_YAWRATE" value="3.5"/>
+        <param name="MAX_IN_PLACE_YAWRATE" value="0.5"/>
+        <param name="MAX_VELOCITY" value="0.5"/>
+        <param name="MAX_YAWRATE" value="0.5"/>
+        <param name="MIN_IN_PLACE_YAWRATE" value="0.1"/>
+        <param name="MIN_VELOCITY" value="0.1"/>
+        <param name="MIN_YAWRATE" value="0.1"/> -->
+
+>>>>>>> 16bcc5d3d2577c664a3af4c74fe49738f0f6912a
         <!-- topic name -->
         <!-- published topics -->
         <remap from="/cmd_vel" to="$(arg cmd_vel)"/>
