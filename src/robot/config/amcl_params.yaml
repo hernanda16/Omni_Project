@@ -27,7 +27,7 @@ laser_max_beams: 360       # 🔧 Use all beams for accuracy (can reduce for per
 # =======================
 # 📌 ODOMETRY MOTION MODEL
 # =======================
-odom_model_type: omni      # ✔️ "omni" for omni robot
+odom_model_type: diff      # ✔️ "omni" for omni robot
 
 odom_alpha1: 0.2           # 🔧 Noise in rotation from rotation
 odom_alpha2: 0.2           # 🔧 Noise in rotation from translation

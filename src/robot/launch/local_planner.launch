@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+
+<launch>
+    <arg name="ns" default="local_planner"/>
+
+    <!-- param -->
+    <arg name="dwa_param" default="$(find robot)/config/dwa_param.yaml"/>
+    <arg name="robot_param" default="$(find robot)/config/robot_param.yaml"/>
+    <arg name="hz" default="20"/>
+    <arg name="global_frame" default="map"/>
+    <arg name="subscribe_count_th" default="3"/>
+    <arg name="sleep_time_after_finish" default="0.5"/>
+    <arg name="v_path_width" default="0.02"/>
+    <arg name="use_footprint" default="false"/>
+    <arg name="use_path_cost" default="false"/>
+    <arg name="use_scan_as_input" default="true"/>
+    <!-- topic name -->
+    <!-- published topics -->
+    <arg name="cmd_vel" default="/cmd_vel"/>
+    <!-- subscribed topics -->
+    <arg name="local_map" default="/local_map"/>
+    <arg name="local_goal" default="/move_base_simple/goal"/>
+    <arg name="odom" default="/robot/odom"/>
+    <arg name="dist_to_goal_th" default="/dist_to_goal_th"/> <!--unused-->
+    <arg name="scan" default="/device/lidar/scan"/>
+    <arg name="footprint" default="/footprint"/> <!--unused-->
+    <arg name="path" default="/path"/> <!--unused-->
+    <arg name="target_velocity" default="/target_velocity"/> <!-- unused -->
+
+    <!-- run dwa_planner node -->
+    <node pkg="robot" type="dwa_planner" name="dwa_planner" ns="$(arg ns)">
+        <!-- param -->
+        <rosparam command="load" file="$(arg dwa_param)"/>
+        <rosparam command="load" file="$(arg robot_param)"/>
+        <param name="HZ" value="$(arg hz)"/>
+        <param name="GLOBAL_FRAME" value="$(arg global_frame)"/>
+        <param name="SUBSCRIBE_COUNT_TH" value="$(arg subscribe_count_th)"/>
+        <param name="SLEEP_TIME_AFTER_FINISH" value="$(arg sleep_time_after_finish)"/>
+        <param name="V_PATH_WIDTH" value="$(arg v_path_width)"/>
+        <param name="USE_FOOTPRINT" value="$(arg use_footprint)"/>
+        <param name="USE_PATH_COST" value="$(arg use_path_cost)"/>
+        <param name="USE_SCAN_AS_INPUT" value="$(arg use_scan_as_input)"/>
+
+        <!-- <param name="MAX_ACCELERATION" value="3.0"/>
+        <param name="MAX_DECELERATION" value="3.0"/>
+        <param name="MAX_D_YAWRATE" value="3.5"/>
+        <param name="MAX_IN_PLACE_YAWRATE" value="0.5"/>
+        <param name="MAX_VELOCITY" value="0.5"/>
+        <param name="MAX_YAWRATE" value="0.5"/>
+        <param name="MIN_IN_PLACE_YAWRATE" value="0.1"/>
+        <param name="MIN_VELOCITY" value="0.1"/>
+        <param name="MIN_YAWRATE" value="0.1"/> -->
+
+        <!-- topic name -->
+        <!-- published topics -->
+        <remap from="/cmd_vel" to="$(arg cmd_vel)"/>
+        <!-- subscribed topics -->
+        <remap from="/local_map" to="$(arg local_map)"/>
+        <remap from="/move_base_simple/goal" to="$(arg local_goal)"/>
+        <remap from="/odom" to="$(arg odom)"/>
+        <remap from="/dist_to_goal_th" to="$(arg dist_to_goal_th)"/>
+        <remap from="/scan" to="$(arg scan)"/>
+        <remap from="/footprint" to="$(arg footprint)"/>
+        <remap from="/path" to="$(arg path)"/>
+        <remap from="/target_velocity" to="$(arg target_velocity)"/>
+    </node>
+</launch>
