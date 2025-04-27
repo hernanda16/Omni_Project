@@ -6,7 +6,7 @@
     <!-- param -->
     <arg name="dwa_param" default="$(find robot)/config/dwa_param.yaml"/>
     <arg name="robot_param" default="$(find robot)/config/robot_param.yaml"/>
-    <arg name="hz" default="20"/>
+    <arg name="hz" default="30"/>
     <arg name="global_frame" default="map"/>
     <arg name="subscribe_count_th" default="3"/>
     <arg name="sleep_time_after_finish" default="0.5"/>
@@ -41,15 +41,30 @@
         <param name="USE_PATH_COST" value="$(arg use_path_cost)"/>
         <param name="USE_SCAN_AS_INPUT" value="$(arg use_scan_as_input)"/>
 
-        <!-- <param name="MAX_ACCELERATION" value="3.0"/>
+        <param name="MAX_VELOCITY" value="0.80"/>
+        <param name="MIN_VELOCITY" value="-0.10"/>
+        <param name="MAX_YAWRATE" value="1.80"/>
+        <param name="MIN_YAWRATE" value="0.50"/>
+        <param name="MAX_IN_PLACE_YAWRATE" value="1.80"/>
+        <param name="MIN_IN_PLACE_YAWRATE" value="0.50"/>
+        <param name="MAX_ACCELERATION" value="3.0"/>
         <param name="MAX_DECELERATION" value="3.0"/>
         <param name="MAX_D_YAWRATE" value="3.5"/>
-        <param name="MAX_IN_PLACE_YAWRATE" value="0.5"/>
-        <param name="MAX_VELOCITY" value="0.5"/>
-        <param name="MAX_YAWRATE" value="0.5"/>
-        <param name="MIN_IN_PLACE_YAWRATE" value="0.1"/>
-        <param name="MIN_VELOCITY" value="0.1"/>
-        <param name="MIN_YAWRATE" value="0.1"/> -->
+        
+        <param name="PREDICT_TIME" value="2.0"/>
+        <param name="SIM_PERIOD" value="0.05"/>
+        <param name="SIM_TIME_SAMPLES" value="15"/>
+        <param name="VELOCITY_SAMPLES" value="8"/>
+        <param name="YAWRATE_SAMPLES" value="30"/>
+
+        <param name="PATH_COST_GAIN" value="0.40"/>
+        <param name="TO_GOAL_COST_GAIN" value="0.80"/>
+        <param name="SPEED_COST_GAIN" value="1"/>
+        <param name="OBSTACLE_COST_GAIN" value="0.20"/>
+        
+        <param name="CHEAT_FACTOR" value="2"/>
+        <param name="OSCILLATION_RESET_DIST" value="0.20"/>
+        <param name="SLOW_VELOCITY_TH" value="0.05"/>
 
         <!-- topic name -->
         <!-- published topics -->
