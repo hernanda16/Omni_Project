@@ -31,17 +31,10 @@
         <!-- <remap from="/joy/set_feedback" to="/device/joy/set_feedback"/> -->
     <!-- </node> -->
 
-<<<<<<< HEAD
-    <!-- <include file="$(find robot)/launch/local_planner.launch">
-        <arg name="use_scan_as_input" value="true"/>
-        <arg name="v_path_width" value="0.02"/>
-    </include> -->
-=======
     <include file="$(find robot)/launch/local_planner.launch">
         <arg name="use_scan_as_input" value="true"/>
         <arg name="v_path_width" value="0.02"/>
     </include>
->>>>>>> 16bcc5d3d2577c664a3af4c74fe49738f0f6912a
 
     <!-- <node pkg="map_server" type="map_server" name="map_server" args="$(find robot)/maps/20250410_163524.yaml"/> -->
 </launch>
