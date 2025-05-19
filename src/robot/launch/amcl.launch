@@ -1,7 +1,7 @@
 <launch>
   <!-- Map Server -->
   <node pkg="map_server" type="map_server" name="map_server" 
-        args="$(find robot)/maps/20250426_231700.yaml"/>
+        args="$(find robot)/maps/20250506_034934.yaml"/>
 
   <!-- AMCL Node -->
   <node pkg="amcl" type="amcl" name="amcl" output="screen">

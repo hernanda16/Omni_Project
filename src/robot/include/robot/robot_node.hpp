@@ -17,6 +17,8 @@
 #include <tf/transform_listener.h>
 #include <visualization_msgs/Marker.h>
 
+#include <std_msgs/Float32.h>
+
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <tf/tf.h>
@@ -123,7 +125,8 @@ geometry_msgs::PoseWithCovarianceStamped amcl_pose;
 // Function prototypes
 void timer_callback(const ros::TimerEvent&);
 void joy_callback(const sensor_msgs::Joy::ConstPtr& msg);
-void imu_callback(const sensor_msgs::Imu::ConstPtr& msg);
+// void imu_callback(const sensor_msgs::Imu::ConstPtr& msg);
+void imu_callback(const std_msgs::Float32::ConstPtr& msg);
 void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& msg);
 void encoder_callback(const std_msgs::Int32MultiArray::ConstPtr& msg);
 void amcl_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);

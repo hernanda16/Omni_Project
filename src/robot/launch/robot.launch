@@ -16,7 +16,7 @@
     <param name="kd_ang" value="0.0" />
     <param name="tf_lidar2base_x" value="-0.0125" />
     <param name="tf_lidar2base_y" value="0" />
-    <param name="tf_lidar2base_theta" value="0.0" />
+    <param name="tf_lidar2base_theta" value="90" />
     <node name="robot_node" pkg="robot" type="robot_node" output="screen" respawn="true">
         <!-- <remap from="/robot/odom"       to="/odom"/> -->
         <!-- <remap from="/robot/cmd_vel"    to="/cmd_vel"/> -->

@@ -45,7 +45,8 @@ int main(int argc, char** argv)
     set_initial_pose(initial_pose.x, initial_pose.y, initial_pose.theta);
 
     sub_joy = nh.subscribe<sensor_msgs::Joy>("/device/joy", 1, joy_callback);
-    sub_imu = nh.subscribe<sensor_msgs::Imu>("/device/imu/data", 1, imu_callback);
+    // sub_imu = nh.subscribe<sensor_msgs::Imu>("/device/imu/data", 1, imu_callback);
+    sub_imu = nh.subscribe<std_msgs::Float32>("/device/imu/yaw", 1, imu_callback);
     sub_lidar = nh.subscribe<sensor_msgs::LaserScan>("/device/lidar/scan", 1, lidar_callback);
     sub_encoder = nh.subscribe<std_msgs::Int32MultiArray>("/device/motor/raw_enc", 1, encoder_callback);
     sub_amcl_pose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, amcl_pose_callback);
@@ -395,7 +396,7 @@ void publish_all()
         // ========== base_link -> base_scan ==========
         tf::Transform tf_link2scan;
         tf_link2scan.setOrigin(tf::Vector3(tf_lidar2base_x, tf_lidar2base_y, 0));
-        q.setRPY(0, 0, tf_lidar2base_theta);
+        q.setRPY(0, 0, DEG2RAD(tf_lidar2base_theta));
         tf_link2scan.setRotation(q);
         tf_broadcaster->sendTransform(tf::StampedTransform(tf_link2scan, current_time, "base_link", scan_frame));
 
@@ -465,48 +466,37 @@ void joy_callback(const sensor_msgs::Joy::ConstPtr& msg)
     // printf("buttons: (x: %d, o: %d, sq: %d, tr: %d)\n", buttons.x, buttons.o, buttons.square, buttons.triangle);
 }
 
-void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
+void imu_callback(const std_msgs::Float32::ConstPtr& msg)
 {
     // Extract yaw from quaternion (in degrees)
-    float imu_yaw_deg = tf::getYaw(msg->orientation) * 180.0 / M_PI;
-    imu_yaw_deg = atan2(2 * (msg->orientation.w * msg->orientation.z + msg->orientation.x * msg->orientation.y), 1 - 2 * (msg->orientation.y * msg->orientation.y + msg->orientation.z * msg->orientation.z)) * 180.0 / M_PI;
-    static float last_imu_yaw = imu_yaw_deg;
+    float imu_yaw_deg = -msg->data;
 
     if (!imu_initialized) {
         initial_imu_yaw = imu_yaw_deg;
-        last_imu_yaw = imu_yaw_deg;
         imu_initialized = true;
         return;
     }
 
-    // Compute delta yaw (change since last reading)
-    float delta_yaw = imu_yaw_deg - last_imu_yaw;
+    // Compute the offset between the initial IMU yaw and the current IMU yaw
+    float imu_offset_yaw = imu_yaw_deg - initial_imu_yaw;
 
-    // Wrap delta_yaw into [-180, 180]
-    if (delta_yaw > 180.0f)
-        delta_yaw -= 360.0f;
-    if (delta_yaw < -180.0f)
-        delta_yaw += 360.0f;
+    // Wrap imu_offset_yaw into [-180, 180]
+    if (imu_offset_yaw > 180.0f)
+        imu_offset_yaw -= 360.0f;
+    if (imu_offset_yaw < -180.0f)
+        imu_offset_yaw += 360.0f;
 
-    // Integrate delta yaw into robot's theta
-    float new_theta = robot_pose.theta + delta_yaw;
+    // Update robot's theta using the IMU offset
+    float new_theta = initial_pose.theta + imu_offset_yaw + initial_pose_theta;
 
-    // Wrap new_theta again into [-180, 180]
+    // Wrap new_theta into [-180, 180]
     if (new_theta > 180.0f)
         new_theta -= 360.0f;
     if (new_theta < -180.0f)
         new_theta += 360.0f;
 
-    // Safety check: ignore spikes
-    if (fabs(new_theta - last_safe_theta) < 20.0f) { // Spike threshold (deg)
-        robot_pose.theta = initial_pose_theta + new_theta; // Apply initial offset
-        last_safe_theta = new_theta;
-        robot_pose.theta = new_theta;
-    } else {
-        printf("theta: %.2f -> %.2f (delta: %.2f) | %.2f %.2f\n", last_safe_theta, new_theta, delta_yaw, imu_yaw_deg, last_imu_yaw);
-        ROS_WARN_THROTTLE(1.0, "IMU spike detected: ignoring rotation jump");
-    }
-    last_imu_yaw = imu_yaw_deg;
+    robot_pose.theta = new_theta;
+    // printf("Theta: %.2f\n", robot_pose.theta);
 }
 void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {

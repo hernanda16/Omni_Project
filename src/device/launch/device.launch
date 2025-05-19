@@ -7,7 +7,7 @@
     <node name="motor" pkg="device" type="motor" output="log" respawn="true">
     </node>
 
-    <node ns="imu" name="imu_node" pkg="imu_bno055" type="bno055_i2c_node" respawn="true" respawn_delay="2" output="log">
+    <!-- <node ns="imu" name="imu_node" pkg="imu_bno055" type="bno055_i2c_node" respawn="true" respawn_delay="2" output="log">
         <param name="device" type="string" value="/dev/i2c-1"/>
         <param name="address" type="int" value="40"/>
         <param name="frame_id" type="string" value="imu"/>
@@ -16,7 +16,9 @@
         <remap from="/imu/raw" to="/device/imu/raw"/>
         <remap from="/imu/status" to="/device/imu/status"/>
         <remap from="/imu/temp" to="/device/imu/temp"/>
-    </node>
+    </node> -->
+
+    <node name="bno" pkg="device" type="bno.py" output="screen" respawn="true" />
     
     <node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="log">
         <param name="serial_port"         type="string" value="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0"/>
