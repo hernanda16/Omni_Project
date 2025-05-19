@@ -93,7 +93,7 @@ void dummy_odom()
 
 void update_robot_pose()
 {
-    float weight_amcl = compute_amcl_trust();
+    float weight_amcl = 0.1;
     float weight_odom = 1.0 - weight_amcl;
 
     robot_pose.x = weight_amcl * amcl_pose.pose.pose.position.x + weight_odom * (robot_pose.x + robot_vel.y * 0.01 * cosf(DEG2RAD(robot_pose.theta)));
@@ -164,6 +164,7 @@ void keyboard_input()
             break;
         case 'v':
             use_dwa = 1;
+            ROS_INFO("USE DWA %d", use_dwa);
             break;
         default:
             break;
@@ -196,8 +197,22 @@ void keyboard_handler()
         break;
     case 'z':
         if (position_control(0.0, 1.0, 0.0)) {
-            velocity_control(0.0, 0.0, 0.0);
-            keyboard_state = ' ';
+            keyboard_state = 1010;
+        }
+        break;
+    case 1010:
+        if (position_control(-1.0, 1.0, 0.0)) {
+            keyboard_state = 1011;
+        }
+        break;
+    case 1011:
+        if (position_control(-1.0, 0.0, 0.0)) {
+            keyboard_state = 1012;
+        }
+        break;
+    case 1012:
+        if (position_control(0.0, 0.0, 0.0)) {
+            keyboard_state = 'z';
         }
         break;
     case 'c':
@@ -303,7 +318,7 @@ uint8_t position_control(float x, float y, float theta)
         float output_y = Kp * error_y + Ki * integral_y + Kd * derivative_y;
         float output_theta = (Kp_angular * error_theta + Ki_angular * integral_theta + Kd_angular * derivative_theta) * M_PI / 180.0;
 
-        velocity_control(output_x, output_y, output_theta);
+        velocity_control(-output_y, output_x, output_theta);
 
         prev_error_x = error_x;
         prev_error_y = error_y;
@@ -395,7 +410,7 @@ void publish_all()
         // ========== base_link -> base_scan ==========
         tf::Transform tf_link2scan;
         tf_link2scan.setOrigin(tf::Vector3(tf_lidar2base_x, tf_lidar2base_y, 0));
-        q.setRPY(0, 0, tf_lidar2base_theta);
+        q.setRPY(0, 0, DEG2RAD(tf_lidar2base_theta));
         tf_link2scan.setRotation(q);
         tf_broadcaster->sendTransform(tf::StampedTransform(tf_link2scan, current_time, "base_link", scan_frame));
 

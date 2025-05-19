@@ -1,0 +1,93 @@
+Raspi4 menggunakan ubuntu server 20, kemudian di instal xfce untuk tampilan GUI
+
+jika ingin menggunakan projek ini di raspi lain dapat menggunakan sd cardnya atau klon sd cardnya
+
+username kedua robot ialah sibernetika dan pw nya ialah 1
+
+#cara konek ssh
+jika sama sekali blum pernah atau tidak bisa konek maka gunakan hdmi untuk setup terlebih dahulu
+
+static lan ip : 192.168.100.101 (robot 1) dan 192.168.100.102
+untuk wifi blum dibikin static karena saat pengerjaan menggunakan hotspot yang dimana ipnya bisa berubah-ubah
+
+sudo apt install openssh-server
+contoh:
+ssh sibernetika@192.168.100.101
+
+#cara roscore
+jika local host maka pada ~/.bashrc
+export ROS_MASTER_URI=http://localhost:11311
+export ROS_HOSTNAME=localhost
+
+jika menggunakan ip maka 
+export ROS_MASTER_URI=http://192.168.100.101:11311 //sesuaikan ipnya
+export ROS_HOSTNAME=192.168.100.101
+
+kapan menggunakan ip? saat ingin display rviz / mapping pada client pc
+
+pada pc setup di ~/.bashrc atau ~/.zshrc 
+# ROS Network Configuration Switcher
+function ros_master() {
+# Default IPs (modify these if needed)
+local MASTER_IP="192.168.150.160"
+local CLIENT_IP="192.168.150.177"
+
+# Set mode based on argument
+if [ "$1" = "1" ]; then
+export ROS_HOSTNAME="localhost"
+export ROS_MASTER_URI="http://localhost:11311"
+echo "ROS MASTER MODE (localhost)"
+elif [ "$1" = "0" ]; then
+export ROS_HOSTNAME="$CLIENT_IP"
+export ROS_MASTER_URI="http://$MASTER_IP:11311"
+echo "ROS CLIENT MODE: $CLIENT_IP → Master @ $MASTER_IP"
+else
+echo "Usage: ROS_MASTER 1 (master) or ROS_MASTER 0 (client)"
+fi
+}
+
+kemudian source ~/.bashrc ketika sudah merubah dan save
+
+kemudian jika kondisinya ingin display rviz pada laptop maka pada terminal
+ros_master 0
+
+jika ingin mengembalikan di localhost maka 
+ros_master 1
+
+kemudian untuk cara run program. saat raspi sudah menyala ketika di ssh maka akan langsung masuk ke directory ~/omni
+
+#kompile 
+./make.sh 
+
+#run
+dapat menggunakan ./run.sh
+
+gunakan c atau x pada keyboard untuk ganti mode KEYBOARD atau JOYSTICK
+
+jika robot sudah bisa digerakkan secara manual, maka step slanjutnya ialah mapping
+
+#cara mapping
+terminal rpi : ssh ke rpi kemudian ./run.sh
+terminal laptop : roslaunch robot gmapping.launch
+terminal laptop : roslaunch robot start_rviz.launch
+
+kemudian jalankan robot secara manual untuk mapping. jika sudah di new terminal laptop run ./save_map.sh
+tersimpan dalam folder robot/maps
+
+mapping telah selesai.
+
+(noted : program pada laptop (ubuntu 20) dan rpi kalau bisa sama)
+
+setelah mapping selesai maka run amcl
+dan load map menggunakan param amcl.launch
+
+terminal rpi : ssh ke rpi kemudian ./run.sh
+terminal laptop : roslaunch robot amcl.launch
+terminal laptop : roslaunch robot start_rviz.launch
+
+pertama set initial pose robot dahulu menggunakan fitur di rviz 
+kedua set nav goal menggunakan fitur di rviz
+
+robot harusnya skrang sudah bisa gerak dengan goal tujuan
+
+obstacle avoidance pada program ini menggunakan dwa local planner (dapat diganti dengan metode lainnya untuk optimasi)

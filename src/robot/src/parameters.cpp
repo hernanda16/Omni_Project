@@ -35,11 +35,7 @@ void DWAPlanner::load_params(void)
     local_nh_.param<double>("PREDICT_TIME", predict_time_, 3.0);
     // - R -
     local_nh_.param<std::string>("ROBOT_FRAME", robot_frame_, std::string("base_link"));
-<<<<<<< HEAD
-    local_nh_.param<double>("ROBOT_RADIUS", robot_radius_, 0.1);
-=======
     local_nh_.param<double>("ROBOT_RADIUS", robot_radius_, 0.2);
->>>>>>> 16bcc5d3d2577c664a3af4c74fe49738f0f6912a
     // - S -
     local_nh_.param<double>("SIM_DIRECTION", sim_direction_, M_PI / 2.0);
     local_nh_.param<double>("SIM_PERIOD", sim_period_, 0.1);

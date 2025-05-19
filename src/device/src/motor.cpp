@@ -72,6 +72,7 @@ int main(int argc, char** argv)
 
     // Serial port setup
     try {
+        // ser.setPort("/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AI05UAHH-if00-port0"); // Ganti dengan port serial Arduino
         ser.setPort("/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AI05UAHH-if00-port0"); // Ganti dengan port serial Arduino
         ser.setBaudrate(115200);
         serial::Timeout to = serial::Timeout::simpleTimeout(1000);
